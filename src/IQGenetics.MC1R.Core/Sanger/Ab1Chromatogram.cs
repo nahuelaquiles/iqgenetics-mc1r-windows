@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.IO;
+
 namespace IQGenetics.MC1R.Core.Sanger;
 
 public sealed class Ab1Chromatogram
@@ -10,10 +13,18 @@ public sealed class Ab1Chromatogram
     public short[] PeakLocations { get; }
     public string ChannelOrder { get; } // FWO_1, typically "GATC"
 
-    /// <summary>Trace channels keyed by base letter in ChannelOrder. Example: traces['A'] gives the A channel.</summary>
+    /// <summary>
+    /// Trace channels keyed by base letter in ChannelOrder. Example: traces['A'] gives the trace for that base.
+    /// </summary>
     public IReadOnlyDictionary<char, short[]> Traces { get; }
 
-    public Ab1Chromatogram(string filePath, string bases, int[] qualities, short[] peakLocations, string channelOrder, IReadOnlyDictionary<char, short[]> traces)
+    public Ab1Chromatogram(
+        string filePath,
+        string bases,
+        int[] qualities,
+        short[] peakLocations,
+        string channelOrder,
+        IReadOnlyDictionary<char, short[]> traces)
     {
         FilePath = filePath;
         Bases = bases;

@@ -1,5 +1,6 @@
 using IQGenetics.MC1R.Core.IO;
-
+using System.IO;
+using System.Linq;
 namespace IQGenetics.MC1R.Core.MC1R;
 
 public sealed record Mc1rReference(string Header, string CdsSequence, string SourcePath);

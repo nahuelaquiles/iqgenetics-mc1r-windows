@@ -1,6 +1,9 @@
 using IQGenetics.MC1R.Core.Alignment;
 using IQGenetics.MC1R.Core.Sanger;
-
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 namespace IQGenetics.MC1R.Core.MC1R;
 
 public enum Orientation

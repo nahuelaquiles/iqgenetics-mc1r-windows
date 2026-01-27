@@ -4,18 +4,20 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <DefineConstants>PublishDir=$(PublishDir)</DefineConstants>
+    <ProductName>IQ Genetics MC1R Sanger Automation</ProductName>
+    <Manufacturer>IQ Genetics / GECORP</Manufacturer>
+    <PackageVersion>0.1.0</PackageVersion>
+    <UpgradeCode>D6D2E7E5-1A62-4F2D-98D0-5FC177BC1C1</UpgradeCode>
+    <ProductLanguage>1033</ProductLanguage>
   </PropertyGroup>
-
   <ItemGroup>
-    <!-- Harvest published output (set PublishDir in CI) -->
     <HarvestDirectory Include="$(PublishDir)">
       <ComponentGroupName>PublishedFiles</ComponentGroupName>
       <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
       <SuppressRootDirectory>true</SuppressRootDirectory>
     </HarvestDirectory>
   </ItemGroup>
-
   <ItemGroup>
-    <Compile Include="Product.wxs" />
+    <Compile Include="product.wxs" />
   </ItemGroup>
 </Project>

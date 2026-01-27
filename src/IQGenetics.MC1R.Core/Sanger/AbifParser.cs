@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
 using System.Text;
-
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 namespace IQGenetics.MC1R.Core.Sanger;
 
 /// <summary>

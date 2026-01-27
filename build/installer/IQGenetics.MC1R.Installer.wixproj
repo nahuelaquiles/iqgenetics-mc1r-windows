@@ -1,13 +1,13 @@
 <Project Sdk="WixToolset.Sdk/4.0.4">
   <PropertyGroup>
     <OutputType>Package</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <DefineConstants>PublishDir=$(PublishDir)</DefineConstants>
     <ProductName>IQ Genetics MC1R Sanger Automation</ProductName>
     <Manufacturer>IQ Genetics / GECORP</Manufacturer>
     <PackageVersion>0.1.0</PackageVersion>
-    <UpgradeCode>D6D2E7E5-1A62-4F2D-98D0-5FC177BC1C1</UpgradeCode>
+    <UpgradeCode>D6D27E5-1A62-4F2D-9D80-5FC177BC1C1</UpgradeCode>
     <ProductLanguage>1033</ProductLanguage>
   </PropertyGroup>
   <ItemGroup>
@@ -18,6 +18,6 @@
     </HarvestDirectory>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="product.wxs" />
+    <Compile Include="MainProduct.wxs" />
   </ItemGroup>
 </Project>

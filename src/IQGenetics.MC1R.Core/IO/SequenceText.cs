@@ -1,3 +1,4 @@
+using System.IO;
 namespace IQGenetics.MC1R.Core.IO;
 
 public static class SequenceText

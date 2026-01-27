@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace IQGenetics.MC1R.Core.Alignment;
 
 /// <summary>Simple Smith–Waterman local alignment to map reference positions to query positions.</summary>

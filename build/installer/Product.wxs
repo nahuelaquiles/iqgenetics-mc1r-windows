@@ -1,39 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="IQ Genetics — MC1R Sanger Automation"
-           Manufacturer="IQ Genetics / GECORP"
-           Version="0.1.0"
-           UpgradeCode="{D6D2E7E5-1A62-4F2D-98D0-5F1C77B7C1C1}">
-    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
-    <MediaTemplate EmbedCab="yes" />
 
-    <StandardDirectory Id="ProgramFilesFolder">
-      <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R">
-        <!-- Files harvested into this folder -->
-      </Directory>
-    </StandardDirectory>
+  <!-- Define product details via WiX variables or the .wixproj -->
+  <Package InstallerVersion="500"
+           InstallScope="perMachine"
+           Compressed="yes"
+           Description="IQ Genetics MC1R Sanger Automation" />
 
-    <Feature Id="MainFeature" Title="IQ Genetics MC1R" Level="1">
-      <ComponentGroupRef Id="PublishedFiles" />
-    </Feature>
+  <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
 
-    <!-- Start menu shortcut -->
-    <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="ProgramMenuDir" Name="IQ Genetics MC1R">
-        <Component Id="StartMenuShortcuts" Guid="{59E2A5E1-6E97-4A5F-8E2D-1FD6F2C0EA0E}">
-          <Shortcut Id="AppShortcut"
-                    Name="IQ Genetics — MC1R"
-                    Target="[INSTALLFOLDER]IQGenetics.MC1R.exe"
-                    WorkingDirectory="INSTALLFOLDER" />
-          <RemoveFolder Id="RemoveProgramMenuDir" On="uninstall" Directory="ProgramMenuDir" />
-          <RegistryValue Root="HKCU" Key="Software\\IQGenetics\\MC1R" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
-        </Component>
-      </Directory>
-    </StandardDirectory>
+  <MediaTemplate EmbedCab="yes" />
 
-    <Feature Id="ShortcutsFeature" Title="Shortcuts" Level="1">
-      <ComponentRef Id="StartMenuShortcuts" />
-    </Feature>
+  <!-- Define installation directories -->
+  <StandardDirectory Id="ProgramFilesFolder">
+    <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R">
+      <!-- Files harvested into this folder -->
+    </Directory>
+  </StandardDirectory>
 
-  </Package>
+  <!-- Main feature referencing harvested files -->
+  <Feature Id="MainFeature" Title="IQ Genetics MC1R" Level="1">
+    <ComponentGroupRef Id="PublishedFiles" />
+  </Feature>
+
+  <!-- Create Start Menu shortcut -->
+  <StandardDirectory Id="ProgramMenuFolder">
+    <Directory Id="ProgramMenuDir" Name="IQ Genetics">
+      <Component Id="StartMenuShortcuts" Guid="965E93E2-DF8F-45D5-8A72-6B1DF6F20EA0">
+        <Shortcut Id="AppShortcut"
+                  Name="IQ Genetics MC1R"
+                  Target="[INSTALLFOLDER]IQGenetics.MC1R.App.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveProgramMenuDir" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="Software\\IQGenetics\\MC1R"
+                       Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </Directory>
+  </StandardDirectory>
+
 </Wix>

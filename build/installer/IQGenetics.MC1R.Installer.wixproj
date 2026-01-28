@@ -3,7 +3,13 @@
     <OutputType>Package</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
-    <DefineConstants>PublishDir=$(PublishDir)</DefineConstants>
+   <DefineConstants>
+      PublishDir=$(PublishDir);
+      ProductName=$(ProductName);
+      Manufacturer=$(Manufacturer);
+      PackageVersion=$(PackageVersion);
+      UpgradeCode=$(UpgradeCode)
+    </DefineConstants>
     <ProductName>IQ Genetics MC1R Sanger Automation</ProductName>
     <Manufacturer>IQ Genetics / GECORP</Manufacturer>
     <PackageVersion>0.1.0</PackageVersion>

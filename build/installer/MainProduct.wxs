@@ -1,67 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  WiX v4 installer for IQ Genetics MC1R.
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
 
-  The app files are harvested from the publish folder into a component group
-  named "PublishedFiles" by the .wixproj HarvestDirectory item.
--->
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-
-  <!-- ENTRY POINT -->
   <Package
-    Name="IQ Genetics MC1R Sanger Automation"
-    Manufacturer="IQ Genetics / GECORP"
-    Version="0.1.0.0"
-    UpgradeCode="224D0170-2C49-4659-9B9A-7DB949722806"
-    Language="1033"
-    Scope="perMachine">
+    Name="IQ Genetics — MC1R (E-locus)"
+    Manufacturer="IQ Genetics"
+    Version="1.0.0"
+    UpgradeCode="A3C2B1D4-6E7F-4C9A-9D18-2D6D4FAEAD10"
+    Scope="perMachine"
+    InstallPrivileges="elevated"
+    Compressed="yes">
 
-    <!-- Force per-machine / all-users behavior explicitly -->
-    <Property Id="ALLUSERS" Value="1" />
-    <Property Id="MSIINSTALLPERUSER" Value="0" />
-
-    <MajorUpgrade DowngradeErrorMessage="A newer version of IQ Genetics MC1R Sanger Automation is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
     <MediaTemplate EmbedCab="yes" />
+    <ui:WixUI Id="WixUI_Minimal" />
 
-    <!-- Main feature: installs harvested files + start menu shortcut -->
-    <Feature Id="MainFeature" Title="IQ Genetics MC1R Sanger Automation" Level="1">
+    <!-- Installation directory -->
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="IQGenetics_MC1R" />
+    </StandardDirectory>
+
+    <!-- Start Menu folder -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="IQ Genetics">
+        <Component Id="StartMenuShortcuts" Guid="C0D6B4B5-8D7F-4E2A-8F2A-7C21B1F0D3D0">
+          <Shortcut
+            Id="IQGeneticsMC1R_StartMenu"
+            Name="IQ Genetics — MC1R"
+            Description="IQ Genetics — MC1R (E-locus) Sanger automation"
+            Target="[INSTALLFOLDER]IQGenetics.MC1R.exe"
+            WorkingDirectory="INSTALLFOLDER" />
+          <RemoveFolder Id="Remove_ApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+          <RegistryValue Root="HKLM"
+                         Key="Software\IQGenetics\MC1R"
+                         Name="Installed"
+                         Type="integer"
+                         Value="1"
+                         KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- Harvested files and shortcut feature -->
+    <Feature Id="MainFeature" Title="IQ Genetics — MC1R" Level="1">
       <ComponentGroupRef Id="PublishedFiles" />
-      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="StartMenuShortcuts" />
     </Feature>
   </Package>
-
-  <!-- Installation directory (x64 installer uses Program Files) -->
-  <Fragment>
-    <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R Sanger Automation" />
-    </StandardDirectory>
-  </Fragment>
-
-  <!-- Start menu folder (legal in WiX v4) -->
-  <Fragment>
-    <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="StartMenuDir" Name="IQ Genetics MC1R Sanger Automation" />
-    </StandardDirectory>
-  </Fragment>
-
-  <!-- Start menu shortcut component -->
-  <Fragment>
-    <Component Id="StartMenuShortcut" Directory="StartMenuDir" Guid="D5774AA1-F836-4BF6-9205-DFC4F77D6751">
-      <Shortcut Id="ApplicationStartMenuShortcut"
-                Name="IQ Genetics MC1R Sanger Automation"
-                Target="[INSTALLFOLDER]IQGenetics.MC1R.exe"
-                WorkingDirectory="INSTALLFOLDER" />
-
-      <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
-
-      <!-- Per-machine registry marker (valid path, no slashes) -->
-      <RegistryValue Root="HKLM"
-                     Key="Software\IQGenetics\MC1R"
-                     Name="Installed"
-                     Type="integer"
-                     Value="1"
-                     KeyPath="yes" />
-    </Component>
-  </Fragment>
-
 </Wix>

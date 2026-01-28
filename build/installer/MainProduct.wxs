@@ -1,37 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  WiX v4 source for the IQ Genetics MC1R installer.
-
-  WiX v4 requires a <Package> child under <Wix>.  The package element defines
-  metadata (Name, Manufacturer, Version, UpgradeCode) and contains directory,
-  component and feature definitions.  A MajorUpgrade
-  element enables version upgrades.
+  WiX v4 fragment-based installer for IQ Genetics MC1R.  We rely on the
+  WixToolset.Sdk to generate the outer <Package> element using metadata
+  defined in the .wixproj (ProductName, Manufacturer, PackageVersion,
+  UpgradeCode).  This file defines directories, the start-menu shortcut,
+  and the feature that pulls in the harvested published files.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package
-      Name="IQ Genetics MC1R Sanger Automation"
-      Manufacturer="IQ Genetics / GECORP"
-      Version="0.1.0.0"
-UpgradeCode="224D0170-2C49-4659-9B9A-7DB949722806"
-      InstallerVersion="500"
-      Compressed="yes">
-    <!-- allow new versions to upgrade old ones -->
-    <MajorUpgrade DowngradeErrorMessage="A newer version of IQ Genetics MC1R Sanger Automation is already installed." />
-
-    <!-- embed files into the MSI -->
-    <MediaTemplate />
-
-    <!-- installation root in Program Files -->
-    <StandardDirectory Id="ProgramFiles6432Folder">
+  <!-- Define the installation directories.  ProgramFiles6432Folder and
+       ProgramMenuFolder are standard directory identifiers in WiX v4. -->
+  <Fragment>
+    <Directory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R Sanger Automation" />
-    </StandardDirectory>
-
-    <!-- start-menu folder -->
-    <StandardDirectory Id="ProgramMenuFolder">
+    </Directory>
+    <Directory Id="ProgramMenuFolder">
       <Directory Id="StartMenuFolder" Name="IQ Genetics MC1R Sanger Automation" />
-    </StandardDirectory>
+    </Directory>
+  </Fragment>
 
-    <!-- create start-menu shortcut and registry marker -->
+  <!-- Define the start-menu shortcut component.  This component creates
+       a shortcut to the installed application and a registry value to
+       mark installation for reference during uninstall. -->
+  <Fragment>
     <Component Id="StartMenuShortcut" Directory="StartMenuFolder" Guid="D5774AA1-F836-4BF6-9205-DFC4F77D6751">
       <Shortcut Id="ApplicationStartMenuShortcut"
                 Name="IQ Genetics MC1R Sanger Automation"
@@ -45,11 +35,14 @@ UpgradeCode="224D0170-2C49-4659-9B9A-7DB949722806"
                      Value="1"
                      KeyPath="yes" />
     </Component>
+  </Fragment>
 
-    <!-- feature that installs harvested files plus the shortcut -->
+  <!-- Define the main feature that installs the harvested application files
+       (PublishedFiles) and the start-menu shortcut component. -->
+  <Fragment>
     <Feature Id="MainFeature" Title="IQ Genetics MC1R Sanger Automation" Level="1">
       <ComponentGroupRef Id="PublishedFiles" />
       <ComponentRef Id="StartMenuShortcut" />
     </Feature>
-  </Package>
+  </Fragment>
 </Wix>

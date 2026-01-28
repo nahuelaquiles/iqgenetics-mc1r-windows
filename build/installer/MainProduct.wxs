@@ -12,7 +12,7 @@
       Name="IQ Genetics MC1R Sanger Automation"
       Manufacturer="IQ Genetics / GECORP"
       Version="0.1.0.0"
-      UpgradeCode="0D6D27E5-1A62-4F2D-9D80-5FC177BC1C1"
+UpgradeCode="224D0170-2C49-4659-9B9A-7DB949722806"
       InstallerVersion="500"
       Compressed="yes">
     <!-- allow new versions to upgrade old ones -->

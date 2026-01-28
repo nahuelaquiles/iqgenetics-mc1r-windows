@@ -1,14 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  WiX v4 source for the IQ Genetics MC1R installer.
+
+  WiX v4 requires a <Package> child under <Wix>.  The package element defines
+  metadata (Name, Manufacturer, Version, UpgradeCode) and contains directory,
+  component and feature definitions.  A MajorUpgrade
+  element enables version upgrades.
+-->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Fragment>
-    <Directory Id="ProgramFilesFolder">
+  <Package
+      Name="!(var.ProductName)"
+      Manufacturer="!(var.Manufacturer)"
+      Version="!(var.PackageVersion)"
+      UpgradeCode="!(var.UpgradeCode)"
+      InstallerVersion="500"
+      Compressed="yes"
+      InstallScope="perMachine">
+
+    <!-- allow new versions to upgrade old ones -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of !(var.ProductName) is already installed." />
+
+    <!-- embed files into the MSI -->
+    <MediaTemplate />
+
+    <!-- installation root in Program Files -->
+    <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="!(var.ProductName)" />
-    </Directory>
-    <Directory Id="ProgramMenuFolder">
+    </StandardDirectory>
+
+    <!-- start‑menu folder -->
+    <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="StartMenuFolder" Name="!(var.ProductName)" />
-    </Directory>
-  </Fragment>
-  <Fragment>
+    </StandardDirectory>
+
+    <!-- create start‑menu shortcut and registry marker -->
     <Component Id="StartMenuShortcut" Directory="StartMenuFolder" Guid="D5774AA1-F836-4BF6-9205-DFC4F77D6751">
       <Shortcut Id="ApplicationStartMenuShortcut"
                 Name="!(var.ProductName)"
@@ -22,11 +47,11 @@
                      Value="1"
                      KeyPath="yes" />
     </Component>
-  </Fragment>
-  <Fragment>
+
+    <!-- feature that installs harvested files plus the shortcut -->
     <Feature Id="MainFeature" Title="!(var.ProductName)" Level="1">
       <ComponentGroupRef Id="PublishedFiles" />
       <ComponentRef Id="StartMenuShortcut" />
     </Feature>
-  </Fragment>
+  </Package>
 </Wix>

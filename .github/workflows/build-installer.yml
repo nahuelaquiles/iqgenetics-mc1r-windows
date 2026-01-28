@@ -36,9 +36,12 @@ jobs:
 
       - name: Build MSI (WiX v4)
         run: |
+          # Resolve the publish directory path and convert backslashes to forward slashes.
+          # WiX’s HarvestDirectory only works with forward slash separators.
+          $publishPath = (Resolve-Path .\artifacts\publish).Path -replace '\\', '/'
           dotnet build .\build\installer\IQGenetics.MC1R.Installer.wixproj `
             -c Release `
-            /p:PublishDir=$((Resolve-Path .\artifacts\publish).Path)
+            /p:PublishDir=$publishPath
 
       - name: Copy MSI to artifacts
         run: |

@@ -9,39 +9,37 @@
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
-      Name="!(var.ProductName)"
-      Manufacturer="!(var.Manufacturer)"
-      Version="!(var.PackageVersion)"
-      UpgradeCode="!(var.UpgradeCode)"
+      Name="IQ Genetics MC1R Sanger Automation"
+      Manufacturer="IQ Genetics / GECORP"
+      Version="0.1.0.0"
+      UpgradeCode="0D6D27E5-1A62-4F2D-9D80-5FC177BC1C1"
       InstallerVersion="500"
-      Compressed="yes"
-      InstallScope="perMachine">
-
+      Compressed="yes">
     <!-- allow new versions to upgrade old ones -->
-    <MajorUpgrade DowngradeErrorMessage="A newer version of !(var.ProductName) is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of IQ Genetics MC1R Sanger Automation is already installed." />
 
     <!-- embed files into the MSI -->
     <MediaTemplate />
 
-    <!-- installation root in Program Files -->
+    <!-- installation root in Program Files -->
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="!(var.ProductName)" />
+      <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R Sanger Automation" />
     </StandardDirectory>
 
-    <!-- start‑menu folder -->
+    <!-- start-menu folder -->
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="StartMenuFolder" Name="!(var.ProductName)" />
+      <Directory Id="StartMenuFolder" Name="IQ Genetics MC1R Sanger Automation" />
     </StandardDirectory>
 
-    <!-- create start‑menu shortcut and registry marker -->
+    <!-- create start-menu shortcut and registry marker -->
     <Component Id="StartMenuShortcut" Directory="StartMenuFolder" Guid="D5774AA1-F836-4BF6-9205-DFC4F77D6751">
       <Shortcut Id="ApplicationStartMenuShortcut"
-                Name="!(var.ProductName)"
+                Name="IQ Genetics MC1R Sanger Automation"
                 Target="[INSTALLFOLDER]IQGenetics.MC1R.App.exe"
                 WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
       <RegistryValue Root="HKCU"
-                     Key="Software\\!(var.Manufacturer)\\!(var.ProductName)"
+                     Key="Software\\IQ Genetics / GECORP\\IQ Genetics MC1R Sanger Automation"
                      Name="Installed"
                      Type="integer"
                      Value="1"
@@ -49,7 +47,7 @@
     </Component>
 
     <!-- feature that installs harvested files plus the shortcut -->
-    <Feature Id="MainFeature" Title="!(var.ProductName)" Level="1">
+    <Feature Id="MainFeature" Title="IQ Genetics MC1R Sanger Automation" Level="1">
       <ComponentGroupRef Id="PublishedFiles" />
       <ComponentRef Id="StartMenuShortcut" />
     </Feature>

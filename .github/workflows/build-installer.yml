@@ -44,7 +44,7 @@ jobs:
 
       - name: Build MSI (WiX v4)
         run: |
-          # WiX HarvestDirectory expects forward slashes. Also add a trailing slash.
+          # WiX HarvestDirectory expects forward slashes + trailing slash
           $publishPath = (Resolve-Path .\artifacts\publish).Path -replace '\\', '/'
           if (-not $publishPath.EndsWith('/')) { $publishPath = $publishPath + '/' }
 
@@ -52,7 +52,8 @@ jobs:
 
           dotnet build .\build\installer\IQGenetics.MC1R.Installer.wixproj `
             -c Release `
-            /p:PublishDir=$publishPath
+            /p:PublishDir=$publishPath `
+            /p:InstallerPlatform=x64
 
       - name: Copy MSI to artifacts
         run: |

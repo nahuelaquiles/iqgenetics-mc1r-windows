@@ -3,6 +3,9 @@
     <OutputType>Package</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
+
+    <!-- CRITICAL: build the installer as x64 so harvested components are 64-bit -->
+    <InstallerPlatform>x64</InstallerPlatform>
   </PropertyGroup>
 
   <!-- REQUIRED: HarvestDirectory is implemented by Heat -->
@@ -10,21 +13,19 @@
     <PackageReference Include="WixToolset.Heat" Version="4.0.4" />
   </ItemGroup>
 
-  <!-- Harvest all published files into a component group named PublishedFiles -->
   <ItemGroup>
+    <!-- Harvest all published files into PublishedFiles -->
     <HarvestDirectory Include="$(PublishDir)">
       <ComponentGroupName>PublishedFiles</ComponentGroupName>
       <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
       <SuppressRootDirectory>true</SuppressRootDirectory>
 
-      <!-- Avoid Heat trying to treat the single-file EXE as a .NET assembly for COM/registry harvesting -->
+      <!-- Avoid COM/registry harvesting -->
       <SuppressCom>true</SuppressCom>
       <SuppressRegistry>true</SuppressRegistry>
     </HarvestDirectory>
 
-    <!-- CRITICAL FIX:
-         Heat writes file sources as SourceDir\SomeFile.
-         BindPath tells WiX where SourceDir actually is. -->
+    <!-- Bind SourceDir to the publish directory -->
     <BindPath Include="$(PublishDir)" />
   </ItemGroup>
 

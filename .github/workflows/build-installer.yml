@@ -34,11 +34,22 @@ jobs:
             /p:PublishTrimmed=false `
             -o .\artifacts\publish
 
+      - name: Verify publish folder (debug)
+        run: |
+          Write-Host "=== Listing artifacts/publish ==="
+          if (!(Test-Path .\artifacts\publish)) {
+            throw "Publish folder not found: .\artifacts\publish"
+          }
+          Get-ChildItem -Path .\artifacts\publish -Recurse | Select-Object FullName
+
       - name: Build MSI (WiX v4)
         run: |
-          # Resolve the publish directory path and convert backslashes to forward slashes.
-          # WiX’s HarvestDirectory only works with forward slash separators.
+          # WiX HarvestDirectory expects forward slashes. Also add a trailing slash.
           $publishPath = (Resolve-Path .\artifacts\publish).Path -replace '\\', '/'
+          if (-not $publishPath.EndsWith('/')) { $publishPath = $publishPath + '/' }
+
+          Write-Host "PublishDir passed to WiX: $publishPath"
+
           dotnet build .\build\installer\IQGenetics.MC1R.Installer.wixproj `
             -c Release `
             /p:PublishDir=$publishPath

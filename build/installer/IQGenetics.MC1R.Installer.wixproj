@@ -5,8 +5,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- REQUIRED: HarvestDirectory is implemented by Heat.
-       Without this package, no ComponentGroup is generated and you get WIX0094. -->
+  <!-- REQUIRED: HarvestDirectory is implemented by Heat -->
   <ItemGroup>
     <PackageReference Include="WixToolset.Heat" Version="4.0.4" />
   </ItemGroup>
@@ -17,7 +16,16 @@
       <ComponentGroupName>PublishedFiles</ComponentGroupName>
       <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
       <SuppressRootDirectory>true</SuppressRootDirectory>
+
+      <!-- Avoid Heat trying to treat the single-file EXE as a .NET assembly for COM/registry harvesting -->
+      <SuppressCom>true</SuppressCom>
+      <SuppressRegistry>true</SuppressRegistry>
     </HarvestDirectory>
+
+    <!-- CRITICAL FIX:
+         Heat writes file sources as SourceDir\SomeFile.
+         BindPath tells WiX where SourceDir actually is. -->
+    <BindPath Include="$(PublishDir)" />
   </ItemGroup>
 
 </Project>

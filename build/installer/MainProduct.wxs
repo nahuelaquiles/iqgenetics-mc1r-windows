@@ -1,38 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  WiX v4 installer for IQ Genetics MC1R.
+  WiX v4 fragment-based installer for IQ Genetics MC1R.
 
   IMPORTANT:
-  WiX needs ONE "entry section" of type <Package> to build an MSI.
-  If a .wxs file contains only <Fragment> blocks, WiX throws:
-    WIX0093: Expected section of type 'Package'
-
-  This file includes:
-    - <Package> entry section (fixes WIX0093)
-    - StandardDirectory usage (removes WIX5437 warnings)
-    - INSTALLFOLDER + Start Menu shortcut
-    - Feature that installs harvested published files + shortcut
+  The WixToolset.Sdk generates the outer <Package> entry section from
+  metadata in IQGenetics.MC1R.Installer.wixproj (ProductName, Manufacturer,
+  PackageVersion, UpgradeCode). Therefore this file MUST contain only
+  fragments (no <Package>), otherwise WiX reports "Multiple entry sections".
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-
-  <!-- ENTRY POINT (required to build MSI) -->
-  <Package
-    Name="$(var.ProductName)"
-    Manufacturer="$(var.Manufacturer)"
-    Version="$(var.PackageVersion)"
-    UpgradeCode="$(var.UpgradeCode)"
-    Language="1033"
-    Scope="perMachine">
-
-    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
-    <MediaTemplate EmbedCab="yes" />
-
-    <!-- Main feature that installs harvested files + Start Menu shortcut -->
-    <Feature Id="MainFeature" Title="IQ Genetics MC1R Sanger Automation" Level="1">
-      <ComponentGroupRef Id="PublishedFiles" />
-      <ComponentRef Id="StartMenuShortcut" />
-    </Feature>
-  </Package>
 
   <!-- Installation directories -->
   <Fragment>
@@ -41,7 +17,7 @@
     </StandardDirectory>
   </Fragment>
 
-  <!-- Start Menu folder (use a custom ID to avoid redefining standard directories) -->
+  <!-- Start menu directory -->
   <Fragment>
     <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="StartMenuDir" Name="IQ Genetics MC1R Sanger Automation" />
@@ -56,7 +32,6 @@
                 Target="[INSTALLFOLDER]IQGenetics.MC1R.App.exe"
                 WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
-
       <!-- Registry entry to mark installation -->
       <RegistryValue Root="HKCU"
                      Key="Software\\IQ Genetics / GECORP\\IQ Genetics MC1R Sanger Automation"
@@ -65,6 +40,14 @@
                      Value="1"
                      KeyPath="yes" />
     </Component>
+  </Fragment>
+
+  <!-- Main feature that installs the harvested files and the shortcut -->
+  <Fragment>
+    <Feature Id="MainFeature" Title="IQ Genetics MC1R Sanger Automation" Level="1">
+      <ComponentGroupRef Id="PublishedFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
   </Fragment>
 
 </Wix>

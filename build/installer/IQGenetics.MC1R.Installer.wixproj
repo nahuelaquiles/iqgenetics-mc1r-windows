@@ -14,8 +14,9 @@
     </HarvestDirectory>
   </ItemGroup>
 
-  <!-- Compile only MainProduct.wxs -->
-  <ItemGroup>
-    <Compile Include="MainProduct.wxs" />
-  </ItemGroup>
+  <!-- IMPORTANT:
+       Do NOT explicitly Compile MainProduct.wxs here.
+       The WiX SDK automatically includes *.wxs files.
+       If we also include it manually, it compiles twice and causes:
+       WIX0089 + duplicate symbols. -->
 </Project>

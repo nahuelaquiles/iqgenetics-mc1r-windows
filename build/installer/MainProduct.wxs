@@ -16,6 +16,10 @@
     Language="1033"
     Scope="perMachine">
 
+    <!-- Force per-machine / all-users behavior explicitly -->
+    <Property Id="ALLUSERS" Value="1" />
+    <Property Id="MSIINSTALLPERUSER" Value="0" />
+
     <MajorUpgrade DowngradeErrorMessage="A newer version of IQ Genetics MC1R Sanger Automation is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
@@ -26,17 +30,16 @@
     </Feature>
   </Package>
 
-  <!-- Installation directory
-       ProgramFiles6432Folder automatically resolves to ProgramFiles64Folder for x64 packages -->
+  <!-- Installation directory (x64 installer uses Program Files) -->
   <Fragment>
     <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R Sanger Automation" />
     </StandardDirectory>
   </Fragment>
 
-  <!-- ALL-USERS Start Menu folder (IMPORTANT: per-machine installers must use CommonProgramsFolder) -->
+  <!-- Start menu folder (legal in WiX v4) -->
   <Fragment>
-    <StandardDirectory Id="CommonProgramsFolder">
+    <StandardDirectory Id="ProgramMenuFolder">
       <Directory Id="StartMenuDir" Name="IQ Genetics MC1R Sanger Automation" />
     </StandardDirectory>
   </Fragment>
@@ -51,7 +54,7 @@
 
       <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
 
-      <!-- Registry marker (per-machine) -->
+      <!-- Per-machine registry marker (valid path, no slashes) -->
       <RegistryValue Root="HKLM"
                      Key="Software\IQGenetics\MC1R"
                      Name="Installed"

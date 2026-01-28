@@ -4,60 +4,77 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
+    tags:
+      - "v*"
 
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET 8
+      - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
 
       - name: Restore
         run: dotnet restore
-        shell: pwsh
 
-      - name: Publish app (self-contained win-x64)
+      - name: Publish self-contained app (win-x64)
         run: |
           New-Item -ItemType Directory -Force -Path artifacts\publish | Out-Null
-          dotnet publish .\src\IQGenetics.MC1R\IQGenetics.MC1R.csproj `
+
+          dotnet publish .\src\IQGenetics.MC1R.App\IQGenetics.MC1R.App.csproj `
             -c Release `
             -r win-x64 `
             --self-contained true `
+            /p:PublishSingleFile=true `
+            /p:IncludeNativeLibrariesForSelfExtract=true `
+            /p:PublishTrimmed=false `
             -o .\artifacts\publish
-        shell: pwsh
 
-      - name: Resolve PublishDir for WiX
-        id: vars
+      - name: Verify publish folder (debug)
         run: |
-          $p = (Resolve-Path .\artifacts\publish).Path
-          $p = $p.Replace('\','/')
-          if (-not $p.EndsWith('/')) { $p = $p + '/' }
-          "publishDir=$p" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          Write-Host "PublishDir passed to WiX: $p"
-        shell: pwsh
+          Write-Host "=== Listing artifacts/publish ==="
+          if (!(Test-Path .\artifacts\publish)) { throw "Publish folder not found: .\artifacts\publish" }
+          Get-ChildItem -Path .\artifacts\publish -Recurse | Select-Object FullName
 
-      - name: Build WiX MSI
+      - name: Build MSI (WiX v4)
         run: |
+          # WiX HarvestDirectory expects forward slashes + trailing slash
+          $publishPath = (Resolve-Path .\artifacts\publish).Path -replace '\\', '/'
+          if (-not $publishPath.EndsWith('/')) { $publishPath = $publishPath + '/' }
+
+          Write-Host "PublishDir passed to WiX: $publishPath"
+
           dotnet build .\build\installer\IQGenetics.MC1R.Installer.wixproj `
             -c Release `
-            /p:PublishDir=${{ steps.vars.outputs.publishDir }} `
+            /p:PublishDir=$publishPath `
             /p:InstallerPlatform=x64
-        shell: pwsh
 
-      - name: List produced MSI
+      - name: Collect MSI into artifacts folder
         run: |
-          Get-ChildItem -Recurse -Path .\artifacts\installer -Filter *.msi | Format-Table FullName, Length
-        shell: pwsh
+          New-Item -ItemType Directory -Force -Path .\artifacts\installer | Out-Null
 
-      - name: Upload MSI artifact
+          $msis = Get-ChildItem -Recurse -Path . -Filter *.msi
+          if ($msis.Count -eq 0) { throw "No MSI produced anywhere in the workspace." }
+
+          foreach ($m in $msis) {
+            Copy-Item $m.FullName .\artifacts\installer\ -Force
+          }
+
+          Write-Host "=== MSI files copied to artifacts/installer ==="
+          Get-ChildItem .\artifacts\installer -Filter *.msi | Select-Object FullName, Length
+
+      - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: IQGenetics_MC1R_Installer
-          path: artifacts/installer/**/*.msi
+          path: artifacts/installer/*.msi
           if-no-files-found: error

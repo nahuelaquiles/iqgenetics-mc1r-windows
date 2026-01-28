@@ -34,9 +34,9 @@
     </StandardDirectory>
   </Fragment>
 
-  <!-- Start menu folder -->
+  <!-- ALL-USERS Start Menu folder (IMPORTANT: per-machine installers must use CommonProgramsFolder) -->
   <Fragment>
-    <StandardDirectory Id="ProgramMenuFolder">
+    <StandardDirectory Id="CommonProgramsFolder">
       <Directory Id="StartMenuDir" Name="IQ Genetics MC1R Sanger Automation" />
     </StandardDirectory>
   </Fragment>
@@ -51,8 +51,7 @@
 
       <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
 
-      <!-- Registry marker (must be a valid Windows registry path; no "/" allowed).
-           For per-machine installs, use HKLM. -->
+      <!-- Registry marker (per-machine) -->
       <RegistryValue Root="HKLM"
                      Key="Software\IQGenetics\MC1R"
                      Name="Installed"

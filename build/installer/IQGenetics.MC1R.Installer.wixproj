@@ -3,16 +3,6 @@
     <OutputType>Package</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
-
-    <!-- Metadata for the MSI package (must appear BEFORE DefineConstants) -->
-    <ProductName>IQ Genetics MC1R Sanger Automation</ProductName>
-    <Manufacturer>IQ Genetics / GECORP</Manufacturer>
-    <PackageVersion>0.1.0.0</PackageVersion>
-    <UpgradeCode>224D0170-2C49-4659-9B9A-7DB949722806</UpgradeCode>
-    <ProductLanguage>1033</ProductLanguage>
-
-    <!-- Define constants used in the .wxs file and by the package generator -->
-    <DefineConstants>PublishDir=$(PublishDir);ProductName=$(ProductName);Manufacturer=$(Manufacturer);PackageVersion=$(PackageVersion);UpgradeCode=$(UpgradeCode)</DefineConstants>
   </PropertyGroup>
 
   <!-- Harvest all published files into a component group named PublishedFiles -->
@@ -24,7 +14,7 @@
     </HarvestDirectory>
   </ItemGroup>
 
-  <!-- Compile MainProduct.wxs -->
+  <!-- Compile only MainProduct.wxs -->
   <ItemGroup>
     <Compile Include="MainProduct.wxs" />
   </ItemGroup>

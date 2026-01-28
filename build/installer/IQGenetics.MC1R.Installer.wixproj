@@ -4,11 +4,10 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <DefineConstants>
-      PublishDir=$(PublishDir);
-      ProductName=$(ProductName);
-      Manufacturer=$(Manufacturer);
-      PackageVersion=$(PackageVersion);
-      UpgradeCode=$(UpgradeCode)
+PublishDir=$(PublishDir);
+    Manufacturer=$(Manufacturer);
+    PackageVersion=$(PackageVersion);
+    UpgradeCode=$(UpgradeCode)
     </DefineConstants>
     
     <Manufacturer>IQ Genetics / GECORP</Manufacturer>

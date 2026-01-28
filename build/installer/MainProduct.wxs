@@ -2,17 +2,12 @@
 <!--
   WiX v4 installer for IQ Genetics MC1R.
 
-  IMPORTANT:
-  This file MUST contain a <Package> entry section.
-  Without it, WiX fails with:
-    WIX0093: Expected section of type 'Package'
-
   The app files are harvested from the publish folder into a component group
   named "PublishedFiles" by the .wixproj HarvestDirectory item.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
-  <!-- ENTRY POINT (required) -->
+  <!-- ENTRY POINT -->
   <Package
     Name="IQ Genetics MC1R Sanger Automation"
     Manufacturer="IQ Genetics / GECORP"
@@ -31,9 +26,10 @@
     </Feature>
   </Package>
 
-  <!-- Installation directory -->
+  <!-- Installation directory
+       ProgramFiles6432Folder automatically resolves to ProgramFiles64Folder for x64 packages -->
   <Fragment>
-    <StandardDirectory Id="ProgramFiles64Folder">
+    <StandardDirectory Id="ProgramFiles6432Folder">
       <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R Sanger Automation" />
     </StandardDirectory>
   </Fragment>
@@ -52,11 +48,13 @@
                 Name="IQ Genetics MC1R Sanger Automation"
                 Target="[INSTALLFOLDER]IQGenetics.MC1R.exe"
                 WorkingDirectory="INSTALLFOLDER" />
+
       <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
 
-      <!-- Registry marker -->
-      <RegistryValue Root="HKCU"
-                     Key="Software\\IQ Genetics / GECORP\\IQ Genetics MC1R Sanger Automation"
+      <!-- Registry marker (must be a valid Windows registry path; no "/" allowed).
+           For per-machine installs, use HKLM. -->
+      <RegistryValue Root="HKLM"
+                     Key="Software\IQGenetics\MC1R"
                      Name="Installed"
                      Type="integer"
                      Value="1"

@@ -5,6 +5,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- REQUIRED: HarvestDirectory is implemented by Heat.
+       Without this package, no ComponentGroup is generated and you get WIX0094. -->
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Heat" Version="4.0.4" />
+  </ItemGroup>
+
   <!-- Harvest all published files into a component group named PublishedFiles -->
   <ItemGroup>
     <HarvestDirectory Include="$(PublishDir)">
@@ -14,9 +20,4 @@
     </HarvestDirectory>
   </ItemGroup>
 
-  <!-- IMPORTANT:
-       Do NOT explicitly Compile MainProduct.wxs here.
-       The WiX SDK automatically includes *.wxs files.
-       If we also include it manually, it compiles twice and causes:
-       WIX0089 + duplicate symbols. -->
 </Project>

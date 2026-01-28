@@ -50,7 +50,7 @@
     <Component Id="StartMenuShortcut" Directory="StartMenuDir" Guid="D5774AA1-F836-4BF6-9205-DFC4F77D6751">
       <Shortcut Id="ApplicationStartMenuShortcut"
                 Name="IQ Genetics MC1R Sanger Automation"
-                Target="[INSTALLFOLDER]IQGenetics.MC1R.App.exe"
+                Target="[INSTALLFOLDER]IQGenetics.MC1R.exe"
                 WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
 

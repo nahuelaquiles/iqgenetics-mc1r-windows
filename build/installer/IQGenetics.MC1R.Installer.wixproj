@@ -10,7 +10,7 @@
       PackageVersion=$(PackageVersion);
       UpgradeCode=$(UpgradeCode)
     </DefineConstants>
-    <ProductName>IQ Genetics MC1R Sanger Automation</ProductName>
+    
     <Manufacturer>IQ Genetics / GECORP</Manufacturer>
     <PackageVersion>0.1.0.0</PackageVersion>
     <UpgradeCode>224D0170-2C49-4659-9B9A-7DB949722806</UpgradeCode>

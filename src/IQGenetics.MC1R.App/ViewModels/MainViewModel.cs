@@ -5,9 +5,11 @@ using System.Runtime.CompilerServices;
 using Microsoft.Win32;
 using IQGenetics.MC1R.Core.MC1R;
 using IQGenetics.MC1R.Core.Sanger;
+using System.Threading.Tasks;
 
 namespace IQGenetics.MC1R.App.ViewModels;
 
+// Modelo de vista principal que conecta la UI con la lógica
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -113,6 +115,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(FileCountLabel));
     }
 
+    // Ejecuta el análisis de todos los archivos seleccionados
     private async Task RunAnalysisAsync()
     {
         try
@@ -150,9 +153,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
                             AlignmentScore = result.AlignmentScore,
                             DirtyFlag = result.IsDirty ? "DIRTY" : "OK",
                             DirtyReason = result.IsDirty ? result.DirtyReason : "",
+                            Genotype212 = result.C212.Genotype,
                             Genotype274 = result.C274.Genotype,
-                            EStatus = result.EStatus,
+                            Genotype355 = result.C355.Genotype,
+                            Genotype376 = result.C376.Genotype,
+                            Genotype636 = result.C636.Genotype,
+                            Genotype637 = result.C637.Genotype,
                             Genotype644 = result.C644.Genotype,
+                            Genotype834 = result.C834.Genotype,
+                            EStatus = result.EStatus,
                             SuppressionStatus = result.SuppressionStatus
                         });
                     });

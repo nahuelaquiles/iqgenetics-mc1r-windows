@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:IQGenetics.MC1R.App"
         xmlns:vm="clr-namespace:IQGenetics.MC1R.App.ViewModels"
         mc:Ignorable="d"
-        Title="IQ Genetics — MC1R (E-locus) Sanger Automation" Height="720" Width="1180"
+        Title="IQ Genetics — MC1R (E-locus) Sanger Automation" Height="720" Width="1200"
         WindowStartupLocation="CenterScreen">
     <Window.DataContext>
         <vm:MainViewModel/>
@@ -20,13 +20,13 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
+        <!-- Encabezado -->
         <DockPanel Grid.Row="0" LastChildFill="True" Margin="0,0,0,10">
             <TextBlock FontSize="22" FontWeight="SemiBold" Text="IQ Genetics — MC1R (E-locus) Sanger Automation" />
             <TextBlock DockPanel.Dock="Right" Foreground="#666" VerticalAlignment="Bottom" Text="{Binding VersionString}" />
         </DockPanel>
 
-        <!-- Inputs -->
+        <!-- Selección de referencia y archivos -->
         <Grid Grid.Row="1" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -58,7 +58,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- Results -->
+        <!-- Tabla de resultados -->
         <Border Grid.Row="2" BorderBrush="#DDD" BorderThickness="1" CornerRadius="6" Padding="10">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
@@ -71,9 +71,15 @@
                         <DataGridTextColumn Header="Sample" Binding="{Binding SampleName}" Width="200"/>
                         <DataGridTextColumn Header="Dirty?" Binding="{Binding DirtyFlag}" Width="90"/>
                         <DataGridTextColumn Header="Reason" Binding="{Binding DirtyReason}" Width="240"/>
+                        <DataGridTextColumn Header="c.212" Binding="{Binding Genotype212}" Width="90"/>
                         <DataGridTextColumn Header="c.274" Binding="{Binding Genotype274}" Width="90"/>
-                        <DataGridTextColumn Header="E status" Binding="{Binding EStatus}" Width="90"/>
+                        <DataGridTextColumn Header="c.355" Binding="{Binding Genotype355}" Width="90"/>
+                        <DataGridTextColumn Header="c.376" Binding="{Binding Genotype376}" Width="90"/>
+                        <DataGridTextColumn Header="c.636" Binding="{Binding Genotype636}" Width="90"/>
+                        <DataGridTextColumn Header="c.637" Binding="{Binding Genotype637}" Width="90"/>
                         <DataGridTextColumn Header="c.644" Binding="{Binding Genotype644}" Width="90"/>
+                        <DataGridTextColumn Header="c.834" Binding="{Binding Genotype834}" Width="90"/>
+                        <DataGridTextColumn Header="E status" Binding="{Binding EStatus}" Width="90"/>
                         <DataGridTextColumn Header="Suppression" Binding="{Binding SuppressionStatus}" Width="120"/>
                         <DataGridTextColumn Header="AlignScore" Binding="{Binding AlignmentScore}" Width="90"/>
                         <DataGridTextColumn Header="Orientation" Binding="{Binding Orientation}" Width="120"/>
@@ -83,7 +89,7 @@
             </DockPanel>
         </Border>
 
-        <!-- Footer -->
+        <!-- Pie con progreso -->
         <Grid Grid.Row="3" Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>

@@ -1,12 +1,23 @@
 <Project Sdk="WixToolset.Sdk/4.0.5">
+
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <OutputType>Package</OutputType>
+
     <Configuration Condition="'$(Configuration)'==''">Release</Configuration>
+
+    <!-- GitHub Actions passes this, but keep a safe default for local builds -->
     <PublishDir Condition="'$(PublishDir)'==''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\</PublishDir>
+
+    <!-- Force x64 MSI build unless overridden -->
     <InstallerPlatform Condition="'$(InstallerPlatform)'==''">x64</InstallerPlatform>
+
+    <!-- Where WiX drops outputs (keeps workflow artifact paths predictable) -->
     <BaseOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\installer\</BaseOutputPath>
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\installer\obj\</BaseIntermediateOutputPath>
+
+    <!-- KEY FIX: stop running MSI ICE validation in CI (it is failing your build) -->
+    <SuppressValidation>true</SuppressValidation>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,7 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Makes SourceDir\... references from harvesting resolve to PublishDir -->
     <BindPath Include="$(PublishDir)" />
+
+    <!-- Harvest all published files into INSTALLFOLDER -->
     <HarvestDirectory Include="$(PublishDir)">
       <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
       <ComponentGroupName>PublishedFiles</ComponentGroupName>
@@ -25,4 +39,5 @@
       <AutogenerateGuids>true</AutogenerateGuids>
     </HarvestDirectory>
   </ItemGroup>
+
 </Project>

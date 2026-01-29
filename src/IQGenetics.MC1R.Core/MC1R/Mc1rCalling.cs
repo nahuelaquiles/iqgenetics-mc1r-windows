@@ -4,20 +4,24 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
 namespace IQGenetics.MC1R.Core.MC1R;
 
+// Representa la orientación de la lectura
 public enum Orientation
 {
     Forward,
     ReverseComplement
 }
 
+// Contiene la llamada a un sitio concreto (posición cDNA, genotipo y nota opcional)
 public sealed record SiteCall(
     int CdnaPosition,
     string Genotype,
     string? Notes
 );
 
+// Contiene todas las llamadas de un archivo de entrada
 public sealed record SampleCallResult(
     string SampleName,
     string FilePath,
@@ -25,21 +29,33 @@ public sealed record SampleCallResult(
     int AlignmentScore,
     bool IsDirty,
     string DirtyReason,
+    SiteCall C212,
     SiteCall C274,
+    SiteCall C355,
+    SiteCall C376,
+    SiteCall C636,
+    SiteCall C637,
     SiteCall C644,
+    SiteCall C834,
     string EStatus,
     string SuppressionStatus
 );
 
 public static class Mc1rCaller
 {
-    // MVP sites
+    // Sitios de interés según el SOP (c.212, c.274, c.355, c.376, c.636, c.637, c.644 y c.834)
+    public const int SiteC212 = 212;
     public const int SiteC274 = 274;
+    public const int SiteC355 = 355;
+    public const int SiteC376 = 376;
+    public const int SiteC636 = 636;
+    public const int SiteC637 = 637;
     public const int SiteC644 = 644;
+    public const int SiteC834 = 834;
 
     public static SampleCallResult CallAb1(Ab1Chromatogram ab1, Mc1rReference reference)
     {
-        // Trim AB1 to remove leading/trailing junk but keep index mapping
+        // Recorta los extremos de mala calidad pero mantiene la correspondencia de índices
         var (trimStart, trimEnd) = FindTrim(ab1.Qualities, qmin: 15);
         if (trimEnd - trimStart < 150)
             throw new InvalidDataException("AB1 read too short after trimming.");
@@ -51,45 +67,66 @@ public static class Mc1rCaller
         Orientation orient = alnF.Score >= alnRC.Score ? Orientation.Forward : Orientation.ReverseComplement;
         var aln = orient == Orientation.Forward ? alnF : alnRC;
 
-        // Basic alignment sanity
+        // Comprueba que el alineamiento sea suficientemente bueno
         if (aln.Score < 600)
         {
             return new SampleCallResult(
                 ab1.FileName, ab1.FilePath, orient, aln.Score,
                 true, "Low alignment score — reference mismatch or very poor sequencing.",
+                new SiteCall(SiteC212, "NoCall", "Alignment failed"),
                 new SiteCall(SiteC274, "NoCall", "Alignment failed"),
+                new SiteCall(SiteC355, "NoCall", "Alignment failed"),
+                new SiteCall(SiteC376, "NoCall", "Alignment failed"),
+                new SiteCall(SiteC636, "NoCall", "Alignment failed"),
+                new SiteCall(SiteC637, "NoCall", "Alignment failed"),
                 new SiteCall(SiteC644, "NoCall", "Alignment failed"),
+                new SiteCall(SiteC834, "NoCall", "Alignment failed"),
                 "NoCall", "NoCall"
             );
         }
 
-        // Dirty detection (peak purity across the aligned region)
+        // Detección de suciedad (mezcla de templados o baja pureza de picos)
         var dirty = ComputeDirtyMetrics(ab1, trimStart, query.Length, aln, orient);
         if (dirty.IsDirty)
         {
             return new SampleCallResult(
                 ab1.FileName, ab1.FilePath, orient, aln.Score,
                 true, dirty.Reason,
+                new SiteCall(SiteC212, "NoCall", "DIRTY"),
                 new SiteCall(SiteC274, "NoCall", "DIRTY"),
+                new SiteCall(SiteC355, "NoCall", "DIRTY"),
+                new SiteCall(SiteC376, "NoCall", "DIRTY"),
+                new SiteCall(SiteC636, "NoCall", "DIRTY"),
+                new SiteCall(SiteC637, "NoCall", "DIRTY"),
                 new SiteCall(SiteC644, "NoCall", "DIRTY"),
+                new SiteCall(SiteC834, "NoCall", "DIRTY"),
                 "DIRTY", "DIRTY"
             );
         }
 
+        // Llama a todos los sitios para obtener sus genotipos
+        var c212 = CallSite(ab1, trimStart, query.Length, aln, orient, SiteC212);
         var c274 = CallSite(ab1, trimStart, query.Length, aln, orient, SiteC274);
+        var c355 = CallSite(ab1, trimStart, query.Length, aln, orient, SiteC355);
+        var c376 = CallSite(ab1, trimStart, query.Length, aln, orient, SiteC376);
+        var c636 = CallSite(ab1, trimStart, query.Length, aln, orient, SiteC636);
+        var c637 = CallSite(ab1, trimStart, query.Length, aln, orient, SiteC637);
         var c644 = CallSite(ab1, trimStart, query.Length, aln, orient, SiteC644);
+        var c834 = CallSite(ab1, trimStart, query.Length, aln, orient, SiteC834);
 
+        // Interpreta los alelos principales
         string eStatus = InterpretE(c274.Genotype);
         string suppression = InterpretSuppression(c644.Genotype);
 
         return new SampleCallResult(
             ab1.FileName, ab1.FilePath, orient, aln.Score,
             false, "",
-            c274, c644,
+            c212, c274, c355, c376, c636, c637, c644, c834,
             eStatus, suppression
         );
     }
 
+    // Determina el segmento utilizable de la secuencia según la calidad mínima
     private static (int Start, int End) FindTrim(int[] qualities, int qmin)
     {
         int start = 0;
@@ -101,9 +138,9 @@ public static class Mc1rCaller
 
     private sealed record DirtyMetrics(bool IsDirty, string Reason);
 
+    // Calcula si la muestra está sucia en función de la pureza de los picos
     private static DirtyMetrics ComputeDirtyMetrics(Ab1Chromatogram ab1, int trimStart, int trimmedLen, SmithWaterman.Result aln, Orientation orient)
     {
-        // thresholds tuned to be conservative: clean samples should pass; truly mixed should fail.
         const int Qmin = 20;
         const int window = 2;
         const int minSum = 200;
@@ -148,9 +185,9 @@ public static class Mc1rCaller
         return new DirtyMetrics(false, "");
     }
 
+    // Llama a un sitio concreto utilizando el mapa de alineamiento
     private static SiteCall CallSite(Ab1Chromatogram ab1, int trimStart, int trimmedLen, SmithWaterman.Result aln, Orientation orient, int cdnaPos)
     {
-        // cDNA pos is 1-based; reference index is 0-based
         int refIdx = cdnaPos - 1;
         if (!aln.RefToQueryMap.TryGetValue(refIdx, out int qIdxTransformed))
             return new SiteCall(cdnaPos, "NoCall", "Reference position not mapped.");
@@ -164,6 +201,7 @@ public static class Mc1rCaller
 
     private sealed record GenotypeCall(string Genotype, string? Notes);
 
+    // Determina el genotipo en un índice determinado valorando heterocigosis
     private static GenotypeCall GenotypeAt(Ab1Chromatogram ab1, int bidx, Orientation orient)
     {
         const int Qmin = 15;
@@ -176,7 +214,6 @@ public static class Mc1rCaller
         var peak = PeakAtBase(ab1, bidx, window);
         if (peak.Sum < minSum) return new GenotypeCall("NoCall", "Low signal at site.");
 
-        // Het criteria (tunable)
         bool isHet = peak.SecondFraction >= 0.22 && peak.SecondOverTop >= 0.33;
 
         char a1 = peak.TopBase;
@@ -188,7 +225,6 @@ public static class Mc1rCaller
             a2 = Complement(a2);
         }
 
-        // normalize ordering (A/C/G/T)
         var alleles = new[] { a1, a2 };
         Array.Sort(alleles);
         string genotype = $"{alleles[0]}/{alleles[1]}";
@@ -198,10 +234,11 @@ public static class Mc1rCaller
 
     private sealed record PeakSummary(char TopBase, char SecondBase, int Top, int Second, int Sum, double Purity, double SecondFraction, double SecondOverTop);
 
+    // Calcula las intensidades máximas en una ventana para cada base
     private static PeakSummary PeakAtBase(Ab1Chromatogram ab1, int baseIndex, int window)
     {
         int x = ab1.PeakLocations[baseIndex];
-        // Ensure we have channels for A/C/G/T even if FWO is unusual
+
         int A = MaxInWindow(ab1, 'A', x, window);
         int C = MaxInWindow(ab1, 'C', x, window);
         int G = MaxInWindow(ab1, 'G', x, window);
@@ -226,7 +263,6 @@ public static class Mc1rCaller
 
     private static int MaxInWindow(Ab1Chromatogram ab1, char baseChar, int x, int w)
     {
-        // channel order might not have this base (rare); treat missing as 0.
         if (!ab1.Traces.TryGetValue(baseChar, out var trace)) return 0;
         int lo = Math.Max(0, x - w);
         int hi = Math.Min(trace.Length - 1, x + w);
@@ -238,23 +274,24 @@ public static class Mc1rCaller
         return max;
     }
 
+    // Interpreta el alelo E según el genotipo en c.274
     private static string InterpretE(string genotype274)
     {
         if (genotype274 == "NoCall") return "NoCall";
-        // E allele corresponds to A at c.274 (c.274G>A; A indicates E signal)
         bool hasA = genotype274.Contains('A');
         if (!hasA) return "Not-E";
         if (genotype274 == "A/A") return "E/E";
         return "E/other";
     }
 
+    // Interpreta el estado de supresión según el genotipo en c.644
     private static string InterpretSuppression(string genotype644)
     {
         if (genotype644 == "NoCall") return "NoCall";
-        // suppression marker is C at c.644 (c.644A>C)
         return genotype644.Contains('C') ? "Suppressed" : "Not suppressed";
     }
 
+    // Calcula la cadena complementaria inversa de una secuencia
     private static string ReverseComplement(string s)
     {
         var arr = s.ToCharArray();
@@ -263,6 +300,7 @@ public static class Mc1rCaller
         return new string(arr);
     }
 
+    // Devuelve el complemento de una base
     private static char Complement(char b) => b switch
     {
         'A' => 'T',
@@ -272,6 +310,7 @@ public static class Mc1rCaller
         _ => 'N'
     };
 
+    // Calcula la mediana de una lista de valores
     private static double Median(List<double> vals)
     {
         if (vals.Count == 0) return 0;

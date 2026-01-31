@@ -41,6 +41,10 @@ public sealed record SampleCallResult(
     string SuppressionStatus
 );
 
+/// <summary>
+/// Contiene la lógica de llamadas MC1R. Ajustado para mejorar la detección de muestras mezcladas
+/// y heterocigosis según los criterios del SOP.
+/// </summary>
 public static class Mc1rCaller
 {
     // Sitios de interés según el SOP (c.212, c.274, c.355, c.376, c.636, c.637, c.644 y c.834)
@@ -53,6 +57,10 @@ public static class Mc1rCaller
     public const int SiteC644 = 644;
     public const int SiteC834 = 834;
 
+    /// <summary>
+    /// Procesa un cromatograma AB1 y devuelve la interpretación de los sitios de interés.
+    /// Incluye control de calidad y detección de muestras mixtas.
+    /// </summary>
     public static SampleCallResult CallAb1(Ab1Chromatogram ab1, Mc1rReference reference)
     {
         // Recorta los extremos de mala calidad pero mantiene la correspondencia de índices
@@ -120,7 +128,7 @@ public static class Mc1rCaller
 
         return new SampleCallResult(
             ab1.FileName, ab1.FilePath, orient, aln.Score,
-            false, "",
+            false, string.Empty,
             c212, c274, c355, c376, c636, c637, c644, c834,
             eStatus, suppression
         );
@@ -138,7 +146,10 @@ public static class Mc1rCaller
 
     private sealed record DirtyMetrics(bool IsDirty, string Reason);
 
-    // Calcula si la muestra está sucia en función de la pureza de los picos
+    /// <summary>
+    /// Calcula si la muestra está sucia evaluando la pureza de los picos a lo largo del alineamiento.
+    /// Ajusta los umbrales para una mayor sensibilidad a mezclas según el SOP.
+    /// </summary>
     private static DirtyMetrics ComputeDirtyMetrics(Ab1Chromatogram ab1, int trimStart, int trimmedLen, SmithWaterman.Result aln, Orientation orient)
     {
         const int Qmin = 20;
@@ -169,6 +180,7 @@ public static class Mc1rCaller
             if (peak.Purity < 0.55) lowPurity++;
         }
 
+        // Se requiere un número mínimo de posiciones de alta calidad para evaluar la suciedad
         if (total < 200)
             return new DirtyMetrics(true, "Insufficient high-quality aligned region.");
 
@@ -176,13 +188,16 @@ public static class Mc1rCaller
         double medianPurity = Median(purities);
         double medianQ = Median(ab1.Qualities.Select(q => (double)q).ToList());
 
+        // Si la calidad global es muy baja, consideramos la muestra sucia
         if (medianQ < 20)
             return new DirtyMetrics(true, "Low base-call quality across read.");
 
-        if (fracLow > 0.20 || medianPurity < 0.65)
+        // Ajuste de umbrales: si más del 15% de posiciones tienen pureza <0.55
+        // o la mediana de purezas es inferior a 0.70, se considera mezcla persistente
+        if (fracLow > 0.15 || medianPurity < 0.70)
             return new DirtyMetrics(true, "DIRTY / MIXED TEMPLATE — repeat PCR/sequencing (persistent secondary peaks).");
 
-        return new DirtyMetrics(false, "");
+        return new DirtyMetrics(false, string.Empty);
     }
 
     // Llama a un sitio concreto utilizando el mapa de alineamiento
@@ -201,7 +216,10 @@ public static class Mc1rCaller
 
     private sealed record GenotypeCall(string Genotype, string? Notes);
 
-    // Determina el genotipo en un índice determinado valorando heterocigosis
+    /// <summary>
+    /// Determina el genotipo en un índice determinado valorando heterocigosis real. Se han ajustado
+    /// los umbrales para exigir una fracción secundaria más alta y una relación segunda/primera mayor.
+    /// </summary>
     private static GenotypeCall GenotypeAt(Ab1Chromatogram ab1, int bidx, Orientation orient)
     {
         const int Qmin = 15;
@@ -214,7 +232,9 @@ public static class Mc1rCaller
         var peak = PeakAtBase(ab1, bidx, window);
         if (peak.Sum < minSum) return new GenotypeCall("NoCall", "Low signal at site.");
 
-        bool isHet = peak.SecondFraction >= 0.22 && peak.SecondOverTop >= 0.33;
+        // Determina heterocigosis real: se requiere que la fracción de la segunda base sea ≥0.30 y la
+        // relación segunda/primera sea ≥0.50 (es decir, picos aproximadamente 1:2 o mayores).
+        bool isHet = peak.SecondFraction >= 0.30 && peak.SecondOverTop >= 0.50;
 
         char a1 = peak.TopBase;
         char a2 = isHet ? peak.SecondBase : peak.TopBase;

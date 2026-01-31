@@ -21,6 +21,19 @@ public sealed record SiteCall(
     string? Notes
 );
 
+public sealed record ReadQcSummary(
+    bool IsDirty,
+    string Reason,
+    int TotalAligned,
+    int HighQualityAligned,
+    double MedianQuality,
+    double MedianPurity,
+    double FractionLowPurity,
+    double FractionModerateSecondary,
+    double FractionStrongSecondary,
+    int MaxModerateRunLength
+);
+
 // Contiene todas las llamadas de un archivo de entrada
 public sealed record SampleCallResult(
     string SampleName,
@@ -38,7 +51,8 @@ public sealed record SampleCallResult(
     SiteCall C644,
     SiteCall C834,
     string EStatus,
-    string SuppressionStatus
+    string SuppressionStatus,
+    ReadQcSummary QcSummary
 );
 
 public static class Mc1rCaller
@@ -70,6 +84,7 @@ public static class Mc1rCaller
         // Comprueba que el alineamiento sea suficientemente bueno
         if (aln.Score < 600)
         {
+            var qc = new ReadQcSummary(true, "Alignment failed.", 0, 0, 0, 0, 0, 0, 0, 0);
             return new SampleCallResult(
                 ab1.FileName, ab1.FilePath, orient, aln.Score,
                 true, "Low alignment score — reference mismatch or very poor sequencing.",
@@ -81,17 +96,18 @@ public static class Mc1rCaller
                 new SiteCall(SiteC637, "NoCall", "Alignment failed"),
                 new SiteCall(SiteC644, "NoCall", "Alignment failed"),
                 new SiteCall(SiteC834, "NoCall", "Alignment failed"),
-                "NoCall", "NoCall"
+                "NoCall", "NoCall",
+                qc
             );
         }
 
         // Detección de suciedad (mezcla de templados o baja pureza de picos)
-        var dirty = ComputeDirtyMetrics(ab1, trimStart, query.Length, aln, orient);
-        if (dirty.IsDirty)
+        var qcSummary = EvaluateReadQc(ab1, trimStart, query.Length, aln, orient);
+        if (qcSummary.IsDirty)
         {
             return new SampleCallResult(
                 ab1.FileName, ab1.FilePath, orient, aln.Score,
-                true, dirty.Reason,
+                true, qcSummary.Reason,
                 new SiteCall(SiteC212, "NoCall", "DIRTY"),
                 new SiteCall(SiteC274, "NoCall", "DIRTY"),
                 new SiteCall(SiteC355, "NoCall", "DIRTY"),
@@ -100,7 +116,8 @@ public static class Mc1rCaller
                 new SiteCall(SiteC637, "NoCall", "DIRTY"),
                 new SiteCall(SiteC644, "NoCall", "DIRTY"),
                 new SiteCall(SiteC834, "NoCall", "DIRTY"),
-                "DIRTY", "DIRTY"
+                "DIRTY", "DIRTY",
+                qcSummary
             );
         }
 
@@ -122,7 +139,8 @@ public static class Mc1rCaller
             ab1.FileName, ab1.FilePath, orient, aln.Score,
             false, "",
             c212, c274, c355, c376, c636, c637, c644, c834,
-            eStatus, suppression
+            eStatus, suppression,
+            qcSummary
         );
     }
 
@@ -136,53 +154,233 @@ public static class Mc1rCaller
         return (start, end);
     }
 
-    private sealed record DirtyMetrics(bool IsDirty, string Reason);
-
     // Calcula si la muestra está sucia en función de la pureza de los picos
-    private static DirtyMetrics ComputeDirtyMetrics(Ab1Chromatogram ab1, int trimStart, int trimmedLen, SmithWaterman.Result aln, Orientation orient)
+    public static ReadQcSummary EvaluateReadQc(Ab1Chromatogram ab1, int trimStart, int trimmedLen, SmithWaterman.Result aln, Orientation orient)
     {
         const int Qmin = 20;
         const int window = 2;
         const int minSum = 200;
 
         var purities = new List<double>(capacity: 800);
-        int total = 0;
+        var qualities = new List<double>(capacity: 800);
+        int totalAligned = 0;
+        int highQuality = 0;
         int lowPurity = 0;
+        int moderateSecondary = 0;
+        int strongSecondary = 0;
+        int maxRun = 0;
+        int currentRun = 0;
+        var moderateFlags = new List<bool>(capacity: 800);
+        var strongFlags = new List<bool>(capacity: 800);
 
-        foreach (var kv in aln.RefToQueryMap)
+        foreach (var kv in aln.RefToQueryMap.OrderBy(k => k.Key))
         {
-            int refIdx = kv.Key;
+            totalAligned++;
             int qIdxTransformed = kv.Value;
             int qIdxOriginal = orient == Orientation.Forward
                 ? qIdxTransformed
                 : (trimmedLen - 1 - qIdxTransformed);
 
             int bidx = trimStart + qIdxOriginal;
-            if (bidx < 0 || bidx >= ab1.Qualities.Length) continue;
-            if (ab1.Qualities[bidx] < Qmin) continue;
+            if (bidx < 0 || bidx >= ab1.Qualities.Length)
+            {
+                currentRun = 0;
+                continue;
+            }
+            if (ab1.Qualities[bidx] < Qmin)
+            {
+                currentRun = 0;
+                continue;
+            }
 
             var peak = PeakAtBase(ab1, bidx, window);
-            if (peak.Sum < minSum) continue;
+            if (peak.Sum < minSum)
+            {
+                currentRun = 0;
+                continue;
+            }
 
-            total++;
+            highQuality++;
+            qualities.Add(ab1.Qualities[bidx]);
             purities.Add(peak.Purity);
+
+            bool isModerate = peak.SecondFraction >= 0.12 && peak.SecondOverTop >= 0.20;
+            bool isStrong = peak.SecondFraction >= 0.22 && peak.SecondOverTop >= 0.33;
+
             if (peak.Purity < 0.55) lowPurity++;
+            if (isModerate)
+            {
+                moderateSecondary++;
+                currentRun++;
+            }
+            else
+            {
+                maxRun = Math.Max(maxRun, currentRun);
+                currentRun = 0;
+            }
+
+            if (isStrong) strongSecondary++;
+            moderateFlags.Add(isModerate);
+            strongFlags.Add(isStrong);
         }
 
-        if (total < 200)
-            return new DirtyMetrics(true, "Insufficient high-quality aligned region.");
+        maxRun = Math.Max(maxRun, currentRun);
 
-        double fracLow = (double)lowPurity / total;
+        if (highQuality < 200)
+        {
+            return new ReadQcSummary(
+                true,
+                "Insufficient high-quality aligned region.",
+                totalAligned,
+                highQuality,
+                0,
+                0,
+                0,
+                0,
+                0,
+                maxRun
+            );
+        }
+
         double medianPurity = Median(purities);
-        double medianQ = Median(ab1.Qualities.Select(q => (double)q).ToList());
+        double medianQ = Median(qualities);
+        double fracLow = (double)lowPurity / highQuality;
+        double fracModerate = (double)moderateSecondary / highQuality;
+        double fracStrong = (double)strongSecondary / highQuality;
+
+        int maxModerateWindow = MaxWindowCount(moderateFlags, 25);
+        int maxStrongWindow = MaxWindowCount(strongFlags, 25);
+
+        bool looksLocalized = strongSecondary <= 6 && maxRun <= 3 && fracStrong <= 0.03 && maxModerateWindow <= 5;
 
         if (medianQ < 20)
-            return new DirtyMetrics(true, "Low base-call quality across read.");
+        {
+            return new ReadQcSummary(
+                true,
+                "Low base-call quality across read.",
+                totalAligned,
+                highQuality,
+                medianQ,
+                medianPurity,
+                fracLow,
+                fracModerate,
+                fracStrong,
+                maxRun
+            );
+        }
 
-        if (fracLow > 0.20 || medianPurity < 0.65)
-            return new DirtyMetrics(true, "DIRTY / MIXED TEMPLATE — repeat PCR/sequencing (persistent secondary peaks).");
+        if (!looksLocalized && fracStrong > 0.08)
+        {
+            return new ReadQcSummary(
+                true,
+                $"DIRTY / MIXED TEMPLATE — strong secondary peaks across read (strong={fracStrong:P1}).",
+                totalAligned,
+                highQuality,
+                medianQ,
+                medianPurity,
+                fracLow,
+                fracModerate,
+                fracStrong,
+                maxRun
+            );
+        }
 
-        return new DirtyMetrics(false, "");
+        if (!looksLocalized && fracModerate > 0.18 && medianPurity < 0.70)
+        {
+            return new ReadQcSummary(
+                true,
+                $"DIRTY / MIXED TEMPLATE — persistent secondary peaks (moderate={fracModerate:P1}, purity={medianPurity:F2}).",
+                totalAligned,
+                highQuality,
+                medianQ,
+                medianPurity,
+                fracLow,
+                fracModerate,
+                fracStrong,
+                maxRun
+            );
+        }
+
+        if (!looksLocalized && maxRun >= 12)
+        {
+            return new ReadQcSummary(
+                true,
+                $"DIRTY / MIXED TEMPLATE — long run of secondary peaks (run={maxRun}).",
+                totalAligned,
+                highQuality,
+                medianQ,
+                medianPurity,
+                fracLow,
+                fracModerate,
+                fracStrong,
+                maxRun
+            );
+        }
+
+        if (!looksLocalized && (maxStrongWindow >= 6 || maxModerateWindow >= 12))
+        {
+            return new ReadQcSummary(
+                true,
+                $"DIRTY / MIXED TEMPLATE — clustered secondary peaks (strongWindow={maxStrongWindow}, moderateWindow={maxModerateWindow}).",
+                totalAligned,
+                highQuality,
+                medianQ,
+                medianPurity,
+                fracLow,
+                fracModerate,
+                fracStrong,
+                maxRun
+            );
+        }
+
+        if (fracLow > 0.25 || medianPurity < 0.60)
+        {
+            return new ReadQcSummary(
+                true,
+                $"DIRTY / MIXED TEMPLATE — low peak purity (lowPurity={fracLow:P1}, median={medianPurity:F2}).",
+                totalAligned,
+                highQuality,
+                medianQ,
+                medianPurity,
+                fracLow,
+                fracModerate,
+                fracStrong,
+                maxRun
+            );
+        }
+
+        return new ReadQcSummary(
+            false,
+            "",
+            totalAligned,
+            highQuality,
+            medianQ,
+            medianPurity,
+            fracLow,
+            fracModerate,
+            fracStrong,
+            maxRun
+        );
+    }
+
+    private static int MaxWindowCount(IReadOnlyList<bool> flags, int windowSize)
+    {
+        if (flags.Count == 0) return 0;
+        if (flags.Count <= windowSize) return flags.Count(f => f);
+
+        int current = 0;
+        for (int i = 0; i < windowSize; i++)
+        {
+            if (flags[i]) current++;
+        }
+        int max = current;
+        for (int i = windowSize; i < flags.Count; i++)
+        {
+            if (flags[i]) current++;
+            if (flags[i - windowSize]) current--;
+            if (current > max) max = current;
+        }
+        return max;
     }
 
     // Llama a un sitio concreto utilizando el mapa de alineamiento

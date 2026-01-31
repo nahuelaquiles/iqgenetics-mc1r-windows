@@ -21,6 +21,11 @@ public sealed record SiteCall(
     string? Notes
 );
 
+// Resumen de control de calidad para una lectura
+// Se añadió ChromatogramPattern para clasificar el tipo de cromatograma según el SOP:
+//   - "Heterozygous (localized)" cuando los picos secundarios fuertes están localizados (heterocigosis genuina).
+//   - "Mixed template (persistent)" cuando hay mezcla persistente/contaminación.
+//   - "Unclear" en casos donde no se cumple ninguna de las anteriores.
 public sealed record ReadQcSummary(
     bool IsDirty,
     string Reason,
@@ -31,7 +36,8 @@ public sealed record ReadQcSummary(
     double FractionLowPurity,
     double FractionModerateSecondary,
     double FractionStrongSecondary,
-    int MaxModerateRunLength
+    int MaxModerateRunLength,
+    string ChromatogramPattern
 );
 
 // Contiene todas las llamadas de un archivo de entrada
@@ -84,7 +90,7 @@ public static class Mc1rCaller
         // Comprueba que el alineamiento sea suficientemente bueno
         if (aln.Score < 600)
         {
-            var qc = new ReadQcSummary(true, "Alignment failed.", 0, 0, 0, 0, 0, 0, 0, 0);
+            var qc = new ReadQcSummary(true, "Alignment failed.", 0, 0, 0, 0, 0, 0, 0, 0, "Mixed template (persistent)");
             return new SampleCallResult(
                 ab1.FileName, ab1.FilePath, orient, aln.Score,
                 true, "Low alignment score — reference mismatch or very poor sequencing.",
@@ -154,7 +160,7 @@ public static class Mc1rCaller
         return (start, end);
     }
 
-    // Calcula si la muestra está sucia en función de la pureza de los picos
+    // Calcula si la muestra está sucia en función de la pureza de los picos y asigna el patrón de cromatograma
     public static ReadQcSummary EvaluateReadQc(Ab1Chromatogram ab1, int trimStart, int trimmedLen, SmithWaterman.Result aln, Orientation orient)
     {
         const int Qmin = 20;
@@ -238,7 +244,8 @@ public static class Mc1rCaller
                 0,
                 0,
                 0,
-                maxRun
+                maxRun,
+                "Mixed template (persistent)"
             );
         }
 
@@ -253,6 +260,7 @@ public static class Mc1rCaller
 
         bool looksLocalized = strongSecondary <= 6 && maxRun <= 3 && fracStrong <= 0.03 && maxModerateWindow <= 5;
 
+        // Clasificación y detección de suciedad
         if (medianQ < 20)
         {
             return new ReadQcSummary(
@@ -265,7 +273,8 @@ public static class Mc1rCaller
                 fracLow,
                 fracModerate,
                 fracStrong,
-                maxRun
+                maxRun,
+                "Mixed template (persistent)"
             );
         }
 
@@ -281,7 +290,8 @@ public static class Mc1rCaller
                 fracLow,
                 fracModerate,
                 fracStrong,
-                maxRun
+                maxRun,
+                "Mixed template (persistent)"
             );
         }
 
@@ -297,7 +307,8 @@ public static class Mc1rCaller
                 fracLow,
                 fracModerate,
                 fracStrong,
-                maxRun
+                maxRun,
+                "Mixed template (persistent)"
             );
         }
 
@@ -313,7 +324,8 @@ public static class Mc1rCaller
                 fracLow,
                 fracModerate,
                 fracStrong,
-                maxRun
+                maxRun,
+                "Mixed template (persistent)"
             );
         }
 
@@ -329,7 +341,8 @@ public static class Mc1rCaller
                 fracLow,
                 fracModerate,
                 fracStrong,
-                maxRun
+                maxRun,
+                "Mixed template (persistent)"
             );
         }
 
@@ -345,10 +358,13 @@ public static class Mc1rCaller
                 fracLow,
                 fracModerate,
                 fracStrong,
-                maxRun
+                maxRun,
+                "Mixed template (persistent)"
             );
         }
 
+        // No se considera sucia: clasificar según localización
+        string pattern = looksLocalized ? "Heterozygous (localized)" : "Unclear";
         return new ReadQcSummary(
             false,
             "",
@@ -359,7 +375,8 @@ public static class Mc1rCaller
             fracLow,
             fracModerate,
             fracStrong,
-            maxRun
+            maxRun,
+            pattern
         );
     }
 

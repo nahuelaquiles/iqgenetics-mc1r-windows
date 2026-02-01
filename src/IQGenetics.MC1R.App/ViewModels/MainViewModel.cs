@@ -7,200 +7,203 @@ using IQGenetics.MC1R.Core.MC1R;
 using IQGenetics.MC1R.Core.Sanger;
 using System.Threading.Tasks;
 
-namespace IQGenetics.MC1R.App.ViewModels;
-
-// Modelo de vista principal que conecta la UI con la lógica
-public sealed class MainViewModel : INotifyPropertyChanged
+namespace IQGenetics.MC1R.App.ViewModels
 {
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    public string VersionString => "MVP v0.1";
-
-    private string _referencePath = "";
-    public string ReferencePath
+    // Modelo de vista principal que conecta la UI con la lógica
+    public sealed class MainViewModel : INotifyPropertyChanged
     {
-        get => _referencePath;
-        set { _referencePath = value; OnPropertyChanged(); UpdateCanRun(); }
-    }
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-    public ObservableCollection<string> InputFiles { get; } = new();
-    public ObservableCollection<ResultRow> Results { get; } = new();
+        public string VersionString => "MVP v0.1";
 
-    private string _statusText = "";
-    public string StatusText { get => _statusText; set { _statusText = value; OnPropertyChanged(); } }
-
-    private double _progressValue = 0;
-    public double ProgressValue { get => _progressValue; set { _progressValue = value; OnPropertyChanged(); } }
-
-    private string _progressLabel = "Idle";
-    public string ProgressLabel { get => _progressLabel; set { _progressLabel = value; OnPropertyChanged(); } }
-
-    public string FileCountLabel => $"{InputFiles.Count} file(s) selected";
-
-    private bool _canRun = false;
-    public bool CanRun { get => _canRun; private set { _canRun = value; OnPropertyChanged(); } }
-
-    private bool _canExport = false;
-    public bool CanExport { get => _canExport; private set { _canExport = value; OnPropertyChanged(); } }
-
-    public RelayCommand SelectReferenceCommand { get; }
-    public RelayCommand AddFilesCommand { get; }
-    public RelayCommand ClearFilesCommand { get; }
-    public RelayCommand RunAnalysisCommand { get; }
-    public RelayCommand ExportCsvCommand { get; }
-
-    public MainViewModel()
-    {
-        SelectReferenceCommand = new RelayCommand(SelectReference);
-        AddFilesCommand = new RelayCommand(AddFiles);
-        ClearFilesCommand = new RelayCommand(ClearFiles);
-        RunAnalysisCommand = new RelayCommand(async () => await RunAnalysisAsync(), () => CanRun);
-        ExportCsvCommand = new RelayCommand(ExportCsv, () => CanExport);
-    }
-
-    private void SelectReference()
-    {
-        var dlg = new OpenFileDialog
+        private string _referencePath = "";
+        public string ReferencePath
         {
-            Title = "Select MC1R reference (FASTA/FNA/FA/TXT)",
-            Filter = "FASTA files (*.fna;*.fasta;*.fa;*.txt)|*.fna;*.fasta;*.fa;*.txt|All files (*.*)|*.*",
-            Multiselect = false
-        };
-
-        if (dlg.ShowDialog() == true)
-        {
-            ReferencePath = dlg.FileName;
-            StatusText = "Reference selected.";
+            get => _referencePath;
+            set { _referencePath = value; OnPropertyChanged(); UpdateCanRun(); }
         }
-    }
 
-    private void AddFiles()
-    {
-        var dlg = new OpenFileDialog
-        {
-            Title = "Select Sanger chromatograms (.ab1)",
-            Filter = "AB1 files (*.ab1)|*.ab1|All files (*.*)|*.*",
-            Multiselect = true
-        };
+        public ObservableCollection<string> InputFiles { get; } = new();
+        public ObservableCollection<ResultRow> Results { get; } = new();
 
-        if (dlg.ShowDialog() == true)
+        private string _statusText = "";
+        public string StatusText { get => _statusText; set { _statusText = value; OnPropertyChanged(); } }
+
+        private double _progressValue = 0;
+        public double ProgressValue { get => _progressValue; set { _progressValue = value; OnPropertyChanged(); } }
+
+        private string _progressLabel = "Idle";
+        public string ProgressLabel { get => _progressLabel; set { _progressLabel = value; OnPropertyChanged(); } }
+
+        public string FileCountLabel => $"{InputFiles.Count} file(s) selected";
+
+        private bool _canRun = false;
+        public bool CanRun { get => _canRun; private set { _canRun = value; OnPropertyChanged(); } }
+
+        private bool _canExport = false;
+        public bool CanExport { get => _canExport; private set { _canExport = value; OnPropertyChanged(); } }
+
+        public RelayCommand SelectReferenceCommand { get; }
+        public RelayCommand AddFilesCommand { get; }
+        public RelayCommand ClearFilesCommand { get; }
+        public RelayCommand RunAnalysisCommand { get; }
+        public RelayCommand ExportCsvCommand { get; }
+
+        public MainViewModel()
         {
-            foreach (var f in dlg.FileNames)
+            SelectReferenceCommand = new RelayCommand(SelectReference);
+            AddFilesCommand = new RelayCommand(AddFiles);
+            ClearFilesCommand = new RelayCommand(ClearFiles);
+            RunAnalysisCommand = new RelayCommand(async () => await RunAnalysisAsync(), () => CanRun);
+            ExportCsvCommand = new RelayCommand(ExportCsv, () => CanExport);
+        }
+
+        private void SelectReference()
+        {
+            var dlg = new OpenFileDialog
             {
-                if (!InputFiles.Contains(f))
-                    InputFiles.Add(f);
+                Title = "Select MC1R reference (FASTA/FNA/FA/TXT)",
+                Filter = "FASTA files (*.fna;*.fasta;*.fa;*.txt)|*.fna;*.fasta;*.fa;*.txt|All files (*.*)|*.*",
+                Multiselect = false
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                ReferencePath = dlg.FileName;
+                StatusText = "Reference selected.";
             }
+        }
+
+        private void AddFiles()
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "Select Sanger chromatograms (.ab1)",
+                Filter = "AB1 files (*.ab1)|*.ab1|All files (*.*)|*.*",
+                Multiselect = true
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                foreach (var f in dlg.FileNames)
+                {
+                    if (!InputFiles.Contains(f))
+                        InputFiles.Add(f);
+                }
+                OnPropertyChanged(nameof(FileCountLabel));
+                UpdateCanRun();
+            }
+        }
+
+        private void ClearFiles()
+        {
+            InputFiles.Clear();
+            Results.Clear();
+            CanExport = false;
+            StatusText = "Cleared.";
+            ProgressValue = 0;
+            ProgressLabel = "Idle";
             OnPropertyChanged(nameof(FileCountLabel));
             UpdateCanRun();
         }
-    }
 
-    private void ClearFiles()
-    {
-        InputFiles.Clear();
-        Results.Clear();
-        CanExport = false;
-        StatusText = "Cleared.";
-        ProgressValue = 0;
-        ProgressLabel = "Idle";
-        OnPropertyChanged(nameof(FileCountLabel));
-        UpdateCanRun();
-    }
-
-    private void UpdateCanRun()
-    {
-        CanRun = !string.IsNullOrWhiteSpace(ReferencePath) && InputFiles.Count > 0;
-        RunAnalysisCommand.RaiseCanExecuteChanged();
-        ExportCsvCommand.RaiseCanExecuteChanged();
-        OnPropertyChanged(nameof(FileCountLabel));
-    }
-
-    // Ejecuta el análisis de todos los archivos seleccionados
-    private async Task RunAnalysisAsync()
-    {
-        try
+        private void UpdateCanRun()
         {
-            Results.Clear();
-            CanExport = false;
-            StatusText = "Loading reference...";
-            ProgressLabel = "Preparing...";
-            ProgressValue = 0;
+            CanRun = !string.IsNullOrWhiteSpace(ReferencePath) && InputFiles.Count > 0;
+            RunAnalysisCommand.RaiseCanExecuteChanged();
+            ExportCsvCommand.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(FileCountLabel));
+        }
 
-            var reference = Mc1rReferenceLoader.Load(ReferencePath);
-
-            int n = InputFiles.Count;
-            int done = 0;
-
-            foreach (var file in InputFiles)
+        // Ejecuta el análisis de todos los archivos seleccionados
+        private async Task RunAnalysisAsync()
+        {
+            try
             {
-                done++;
-                ProgressValue = 100.0 * (done - 1) / Math.Max(1, n);
-                ProgressLabel = $"Analyzing {done}/{n}...";
-                StatusText = Path.GetFileName(file);
+                Results.Clear();
+                CanExport = false;
+                StatusText = "Loading reference...";
+                ProgressLabel = "Preparing...";
+                ProgressValue = 0;
 
-                await Task.Run(() =>
+                var reference = Mc1rReferenceLoader.Load(ReferencePath);
+
+                int n = InputFiles.Count;
+                int done = 0;
+
+                foreach (var file in InputFiles)
                 {
-                    var ab1 = AbifParser.ReadAb1(file);
-                    var result = Mc1rCaller.CallAb1(ab1, reference);
+                    done++;
+                    ProgressValue = 100.0 * (done - 1) / Math.Max(1, n);
+                    ProgressLabel = $"Analyzing {done}/{n}...";
+                    StatusText = Path.GetFileName(file);
 
-                    App.Current.Dispatcher.Invoke(() =>
+                    await Task.Run(() =>
                     {
-                        Results.Add(new ResultRow
+                        var ab1 = AbifParser.ReadAb1(file);
+                        var result = Mc1rCaller.CallAb1(ab1, reference);
+
+                        App.Current.Dispatcher.Invoke(() =>
                         {
-                            SampleName = result.SampleName,
-                            FilePath = result.FilePath,
-                            Orientation = result.Orientation.ToString(),
-                            AlignmentScore = result.AlignmentScore,
-                            DirtyFlag = result.IsDirty ? "DIRTY" : "OK",
-                            DirtyReason = result.IsDirty ? result.DirtyReason : "",
-                            Genotype212 = result.C212.Genotype,
-                            Genotype274 = result.C274.Genotype,
-                            Genotype355 = result.C355.Genotype,
-                            Genotype376 = result.C376.Genotype,
-                            Genotype636 = result.C636.Genotype,
-                            Genotype637 = result.C637.Genotype,
-                            Genotype644 = result.C644.Genotype,
-                            Genotype834 = result.C834.Genotype,
-                            EStatus = result.EStatus,
-                            SuppressionStatus = result.SuppressionStatus
+                            Results.Add(new ResultRow
+                            {
+                                SampleName = result.SampleName,
+                                FilePath = result.FilePath,
+                                Orientation = result.Orientation.ToString(),
+                                AlignmentScore = result.AlignmentScore,
+                                DirtyFlag = result.IsDirty ? "DIRTY" : "OK",
+                                DirtyReason = result.IsDirty ? result.DirtyReason : "",
+                                Genotype212 = result.C212.Genotype,
+                                Genotype274 = result.C274.Genotype,
+                                Genotype355 = result.C355.Genotype,
+                                Genotype376 = result.C376.Genotype,
+                                Genotype636 = result.C636.Genotype,
+                                Genotype637 = result.C637.Genotype,
+                                Genotype644 = result.C644.Genotype,
+                                Genotype834 = result.C834.Genotype,
+                                EStatus = result.EStatus,
+                                SuppressionStatus = result.SuppressionStatus,
+                                // Aquí añadimos el nuevo patrón de cromatograma
+                                ChromatogramPattern = result.QcSummary.ChromatogramPattern
+                            });
                         });
                     });
-                });
+                }
+
+                ProgressValue = 100;
+                ProgressLabel = "Done";
+                StatusText = $"Completed: {Results.Count} result(s).";
+                CanExport = Results.Count > 0;
+                ExportCsvCommand.RaiseCanExecuteChanged();
             }
-
-            ProgressValue = 100;
-            ProgressLabel = "Done";
-            StatusText = $"Completed: {Results.Count} result(s).";
-            CanExport = Results.Count > 0;
-            ExportCsvCommand.RaiseCanExecuteChanged();
+            catch (Exception ex)
+            {
+                StatusText = "Error: " + ex.Message;
+                ProgressLabel = "Error";
+            }
         }
-        catch (Exception ex)
+
+        private void ExportCsv()
         {
-            StatusText = "Error: " + ex.Message;
-            ProgressLabel = "Error";
+            var dlg = new SaveFileDialog
+            {
+                Title = "Export CSV",
+                Filter = "CSV (*.csv)|*.csv",
+                FileName = "mc1r_results.csv"
+            };
+
+            if (dlg.ShowDialog() == true)
+            {
+                CsvWriter.WriteResults(dlg.FileName, Results);
+                StatusText = "Exported: " + dlg.FileName;
+            }
         }
-    }
 
-    private void ExportCsv()
-    {
-        var dlg = new SaveFileDialog
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
         {
-            Title = "Export CSV",
-            Filter = "CSV (*.csv)|*.csv",
-            FileName = "mc1r_results.csv"
-        };
-
-        if (dlg.ShowDialog() == true)
-        {
-            CsvWriter.WriteResults(dlg.FileName, Results);
-            StatusText = "Exported: " + dlg.FileName;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            if (name == nameof(InputFiles))
+                OnPropertyChanged(nameof(FileCountLabel));
         }
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string? name = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        if (name == nameof(InputFiles))
-            OnPropertyChanged(nameof(FileCountLabel));
     }
 }

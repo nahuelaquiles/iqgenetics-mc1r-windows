@@ -14,7 +14,7 @@ namespace IQGenetics.MC1R.App.ViewModels
     {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public string VersionString => "MVP v0.1";
+        public string VersionString => "MVP v0.2";
 
         private string _referencePath = "";
         public string ReferencePath
@@ -145,14 +145,28 @@ namespace IQGenetics.MC1R.App.ViewModels
 
                         App.Current.Dispatcher.Invoke(() =>
                         {
+                            // DirtyFlag:
+                            //   - DIRTY: QC falló (no se reporta genotipo)
+                            //   - WARN: QC pasó, pero hay advertencia (secundarios elevados/unclear)
+                            //   - OK: QC pasó sin advertencias
+                            string qcFlag = result.IsDirty
+                                ? "DIRTY"
+                                : (!string.IsNullOrWhiteSpace(result.QcSummary.Reason) || result.QcSummary.ChromatogramPattern == "Unclear")
+                                    ? "WARN"
+                                    : "OK";
+
+                            string qcReason = result.IsDirty
+                                ? result.DirtyReason
+                                : (qcFlag == "WARN" ? result.QcSummary.Reason : "");
+
                             Results.Add(new ResultRow
                             {
                                 SampleName = result.SampleName,
                                 FilePath = result.FilePath,
                                 Orientation = result.Orientation.ToString(),
                                 AlignmentScore = result.AlignmentScore,
-                                DirtyFlag = result.IsDirty ? "DIRTY" : "OK",
-                                DirtyReason = result.IsDirty ? result.DirtyReason : "",
+                                DirtyFlag = qcFlag,
+                                DirtyReason = qcReason,
                                 Genotype212 = result.C212.Genotype,
                                 Genotype274 = result.C274.Genotype,
                                 Genotype355 = result.C355.Genotype,

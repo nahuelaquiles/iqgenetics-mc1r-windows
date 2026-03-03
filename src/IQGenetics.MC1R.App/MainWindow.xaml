@@ -71,6 +71,7 @@
                         <DataGridTextColumn Header="Sample" Binding="{Binding SampleName}" Width="200"/>
                         <DataGridTextColumn Header="Dirty?" Binding="{Binding DirtyFlag}" Width="90"/>
                         <DataGridTextColumn Header="Reason" Binding="{Binding DirtyReason}" Width="240"/>
+                        <DataGridTextColumn Header="Pattern" Binding="{Binding ChromatogramPattern}" Width="170"/>
                         <DataGridTextColumn Header="c.212" Binding="{Binding Genotype212}" Width="90"/>
                         <DataGridTextColumn Header="c.274" Binding="{Binding Genotype274}" Width="90"/>
                         <DataGridTextColumn Header="c.355" Binding="{Binding Genotype355}" Width="90"/>

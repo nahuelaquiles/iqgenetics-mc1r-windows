@@ -163,9 +163,44 @@ public static class Mc1rCaller
     // Calcula si la muestra está sucia en función de la pureza de los picos y asigna el patrón de cromatograma
     public static ReadQcSummary EvaluateReadQc(Ab1Chromatogram ab1, int trimStart, int trimmedLen, SmithWaterman.Result aln, Orientation orient)
     {
+        // =============================
+        // QC TUNING (más/menos estricto)
+        // =============================
+        // Objetivo: evitar falsos DIRTY cuando el cromatograma es usable (picos secundarios localizados)
+        // pero mantener protección contra mezcla persistente/contaminación.
+        //
+        // Regla SOP: heterocigosis verdadera = doble pico LOCALIZADO; mezcla = secundarios PERSISTENTES.
+        // (ver SOP de laboratorio)
+
+        // Calidad mínima por base para evaluar QC
         const int Qmin = 20;
+
+        // Ventana (en puntos de traza) para evaluar intensidad máxima por base
         const int window = 2;
+
+        // Señal mínima total (A+C+G+T) para considerar el punto (evita zonas sin señal)
         const int minSum = 200;
+
+        // Ignorar extremos para QC (los extremos suelen tener artefactos: compresión, dye blobs, etc.)
+        // Se usa SOLO para QC: el llamado de genotipo en sitios sigue usando el alineamiento.
+        int qcEdgeTrim = Math.Max(20, (int)Math.Round(trimmedLen * 0.12)); // ~12% o mínimo 20 bases
+
+        // Mínimo de bases de alta calidad en la región central para tomar decisiones
+        const int minHighQuality = 150;
+
+        // Umbrales para definir picos secundarios (moderado vs fuerte)
+        const double modSecondFraction = 0.12;
+        const double modSecondOverTop = 0.20;
+        const double strongSecondFraction = 0.22;
+        const double strongSecondOverTop = 0.33;
+
+        // Umbrales de pureza
+        const double lowPurityCut = 0.55;
+        const double goodMedianPurity = 0.78;
+        const double minAcceptableMedianPurity = 0.60;
+
+        // Ventanas para detectar “clusters” (nº de bases marcadas en una ventana de 25)
+        const int clusterWindowSize = 25;
 
         var purities = new List<double>(capacity: 800);
         var qualities = new List<double>(capacity: 800);
@@ -186,6 +221,13 @@ public static class Mc1rCaller
             int qIdxOriginal = orient == Orientation.Forward
                 ? qIdxTransformed
                 : (trimmedLen - 1 - qIdxTransformed);
+
+            // Para QC ignoramos los extremos (la región central es la que importa para decidir mezcla/pureza)
+            if (qIdxOriginal < qcEdgeTrim || qIdxOriginal >= (trimmedLen - qcEdgeTrim))
+            {
+                currentRun = 0;
+                continue;
+            }
 
             int bidx = trimStart + qIdxOriginal;
             if (bidx < 0 || bidx >= ab1.Qualities.Length)
@@ -210,10 +252,10 @@ public static class Mc1rCaller
             qualities.Add(ab1.Qualities[bidx]);
             purities.Add(peak.Purity);
 
-            bool isModerate = peak.SecondFraction >= 0.12 && peak.SecondOverTop >= 0.20;
-            bool isStrong = peak.SecondFraction >= 0.22 && peak.SecondOverTop >= 0.33;
+            bool isModerate = peak.SecondFraction >= modSecondFraction && peak.SecondOverTop >= modSecondOverTop;
+            bool isStrong = peak.SecondFraction >= strongSecondFraction && peak.SecondOverTop >= strongSecondOverTop;
 
-            if (peak.Purity < 0.55) lowPurity++;
+            if (peak.Purity < lowPurityCut) lowPurity++;
             if (isModerate)
             {
                 moderateSecondary++;
@@ -232,7 +274,7 @@ public static class Mc1rCaller
 
         maxRun = Math.Max(maxRun, currentRun);
 
-        if (highQuality < 200)
+        if (highQuality < minHighQuality)
         {
             return new ReadQcSummary(
                 true,
@@ -255,10 +297,19 @@ public static class Mc1rCaller
         double fracModerate = (double)moderateSecondary / highQuality;
         double fracStrong = (double)strongSecondary / highQuality;
 
-        int maxModerateWindow = MaxWindowCount(moderateFlags, 25);
-        int maxStrongWindow = MaxWindowCount(strongFlags, 25);
+        int maxModerateWindow = MaxWindowCount(moderateFlags, clusterWindowSize);
+        int maxStrongWindow = MaxWindowCount(strongFlags, clusterWindowSize);
 
-        bool looksLocalized = strongSecondary <= 6 && maxRun <= 3 && fracStrong <= 0.03 && maxModerateWindow <= 5;
+        // Heurística: heterocigosis verdadera tiende a ser LOCALIZADA (pocos eventos fuertes y corridas cortas).
+        // Se relajó para evitar falsos DIRTY en lecturas buenas.
+        bool looksLocalized =
+            strongSecondary <= 12 &&
+            maxRun <= 6 &&
+            fracStrong <= 0.06 &&
+            maxModerateWindow <= 8;
+
+        // “Buen cromatograma global”: pureza y calidad central buenas, aunque haya algunos secundarios.
+        bool goodGlobal = (medianQ >= 20) && (medianPurity >= goodMedianPurity) && (fracLow <= 0.12);
 
         // Clasificación y detección de suciedad
         if (medianQ < 20)
@@ -278,7 +329,8 @@ public static class Mc1rCaller
             );
         }
 
-        if (!looksLocalized && fracStrong > 0.08)
+        // DIRTY por secundarios fuertes realmente persistentes
+        if (!looksLocalized && fracStrong > 0.14)
         {
             return new ReadQcSummary(
                 true,
@@ -295,7 +347,27 @@ public static class Mc1rCaller
             );
         }
 
-        if (!looksLocalized && fracModerate > 0.18 && medianPurity < 0.70)
+
+        // Caso intermedio: si hay bastante fuerte Y además la pureza global baja, también es DIRTY
+        if (!looksLocalized && fracStrong > 0.10 && medianPurity < 0.72)
+        {
+            return new ReadQcSummary(
+                true,
+                $"DIRTY / MIXED TEMPLATE — strong secondary peaks with low purity (strong={fracStrong:P1}, purity={medianPurity:F2}).",
+                totalAligned,
+                highQuality,
+                medianQ,
+                medianPurity,
+                fracLow,
+                fracModerate,
+                fracStrong,
+                maxRun,
+                "Mixed template (persistent)"
+            );
+        }
+
+        // DIRTY por secundarios moderados persistentes + pureza mediocre
+        if (!looksLocalized && fracModerate > 0.28 && medianPurity < 0.72)
         {
             return new ReadQcSummary(
                 true,
@@ -312,7 +384,9 @@ public static class Mc1rCaller
             );
         }
 
-        if (!looksLocalized && maxRun >= 12)
+
+        // Corridas largas de secundarios (suele ser co-amplificación/mix) — pero no castigar si la pureza global es muy buena.
+        if (!looksLocalized && maxRun >= 18 && medianPurity < 0.75)
         {
             return new ReadQcSummary(
                 true,
@@ -329,7 +403,10 @@ public static class Mc1rCaller
             );
         }
 
-        if (!looksLocalized && (maxStrongWindow >= 6 || maxModerateWindow >= 12))
+
+        // “Clusters” (muchos secundarios en una ventana corta) — en Sanger puede aparecer localmente sin ser mezcla.
+        // Por eso, solo lo consideramos DIRTY si también hay evidencia de baja pureza (medianPurity baja + fracLow alto).
+        if (!looksLocalized && (maxStrongWindow >= 8 || maxModerateWindow >= 16) && medianPurity < 0.74 && fracLow > 0.12)
         {
             return new ReadQcSummary(
                 true,
@@ -346,7 +423,9 @@ public static class Mc1rCaller
             );
         }
 
-        if (fracLow > 0.25 || medianPurity < 0.60)
+
+        // Pureza global baja = DIRTY
+        if (fracLow > 0.30 || medianPurity < minAcceptableMedianPurity)
         {
             return new ReadQcSummary(
                 true,
@@ -363,11 +442,33 @@ public static class Mc1rCaller
             );
         }
 
-        // No se considera sucia: clasificar según localización
+
+        // =============================
+        // NO DIRTY: OK o WARNING
+        // =============================
+        // Si no es sucio, igual queremos informar si hay señal “rara” (secundarios elevados) pero aceptable.
         string pattern = looksLocalized ? "Heterozygous (localized)" : "Unclear";
+
+        // Warning cuando NO es claramente localizado y hay secundarios más altos de lo normal.
+        bool warning = !looksLocalized && (fracStrong >= 0.06 || fracModerate >= 0.22 || maxStrongWindow >= 6 || maxModerateWindow >= 12);
+
+        string reason = "";
+        if (warning)
+        {
+            // Si globalmente está bien, solo advertimos; si no, advertimos con más énfasis.
+            if (goodGlobal)
+            {
+                reason = $"QC WARNING — elevated secondary peaks but global purity is acceptable (medianPurity={medianPurity:F2}, strong={fracStrong:P1}, moderate={fracModerate:P1}).";
+            }
+            else
+            {
+                reason = $"QC WARNING — secondary peaks elevated (medianPurity={medianPurity:F2}, lowPurity={fracLow:P1}, strong={fracStrong:P1}, moderate={fracModerate:P1}).";
+            }
+        }
+
         return new ReadQcSummary(
             false,
-            "",
+            reason,
             totalAligned,
             highQuality,
             medianQ,

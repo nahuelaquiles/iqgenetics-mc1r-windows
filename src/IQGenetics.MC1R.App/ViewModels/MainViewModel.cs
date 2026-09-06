@@ -12,7 +12,7 @@ namespace IQGenetics.MC1R.App.ViewModels
     public sealed class MainViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        public string VersionString => "v1.0 — 2026 haplotype model";
+        public string VersionString => "v1.0.1 — 2026 haplotype model";
 
         private string _referencePath = "";
         public string ReferencePath { get => _referencePath; set { _referencePath = value; OnPropertyChanged(); UpdateCanRun(); } }

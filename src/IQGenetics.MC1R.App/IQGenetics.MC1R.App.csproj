@@ -8,13 +8,18 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>IQGenetics.MC1R</AssemblyName>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\IQGenetics.MC1R.Core\IQGenetics.MC1R.Core.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <None Include="Assets\app.ico" />
+    <Content Include="Assets\MC1R_reference.fna">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>MC1R_reference.fna</TargetPath>
+    </Content>
   </ItemGroup>
 </Project>

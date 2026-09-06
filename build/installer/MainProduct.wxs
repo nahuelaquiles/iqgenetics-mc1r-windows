@@ -3,7 +3,7 @@
   <Package
     Name="IQ Genetics MC1R Haplotype Analysis"
     Manufacturer="IQ Genetics / GECORP"
-    Version="1.0.0.0"
+    Version="1.0.1.0"
     UpgradeCode="224D0170-2C49-4659-9B9A-7DB949722806"
     Language="1033"
     Scope="perMachine">

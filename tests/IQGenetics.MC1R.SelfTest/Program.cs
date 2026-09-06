@@ -23,7 +23,7 @@ static Mc1rRead2026Result MakeRead(string fileName, Mc1rHaplotype a, Mc1rHaploty
 
 static Mc1rHaplotype H(string id) => Mc1rHaplotypeInterpreter.CommonHaplotypes.Single(x => x.Id == id);
 
-var e1 = H("E1"); var e2 = H("E2"); var r1 = H("R1"); var n1 = H("N1"); var n2 = H("N2");
+var e1 = H("E1"); var e2 = H("E2"); var r1 = H("R1"); var er2 = H("E/R2"); var bbc = H("B/BC"); var n1 = H("N1"); var n2 = H("N2");
 
 var ee = Mc1rHaplotypeInterpreter.Interpret("EE", new[] { MakeRead("EE-External-F.ab1", e1, e2) });
 Assert(ee.BreedingCategory == "E/E-compatible", "E1+E2 must be E/E-compatible.");
@@ -52,6 +52,17 @@ Assert(internalOnly.C212.Note.Contains("External-F"), "Missing External-F should
 Assert(Mc1rHaplotypeInterpreter.IsExternalForwardReadName("24307-1-2-Ext-F.ab1"), "Ext-F role detection failed.");
 Assert(Mc1rHaplotypeInterpreter.IsExternalForwardReadName("24307-1-2-External_F.ab1"), "External_F role detection failed.");
 Assert(!Mc1rHaplotypeInterpreter.IsExternalForwardReadName("24307-1-2-P-R.ab1"), "Internal/P-R must not be treated as External-F.");
+
+// Regression cases derived from the resolved 2026 troubleshooting samples.
+var p1 = Mc1rHaplotypeInterpreter.Interpret("24307-1", new[] { MakeRead("24307-1-2-Ext-F.ab1", e1, r1) });
+Assert(p1.BreedingCategory == "E/ALT" && p1.CompatibleDiplotypes == "E1+R1", "24307-1 must resolve to E1+R1 / E-ALT when c.212 C/T is available.");
+
+var p8 = Mc1rHaplotypeInterpreter.Interpret("24307-8", new[] { MakeRead("24307-8-2-Ext-F.ab1", e1, bbc) });
+Assert(p8.BreedingCategory == "E/ALT" && p8.CompatibleDiplotypes == "E1+B/BC", "24307-8 must resolve to E1+B/BC / E-ALT.");
+
+var p9 = Mc1rHaplotypeInterpreter.Interpret("24307-9", new[] { MakeRead("24307-9-2-Ext-F.ab1", e1, er2) });
+Assert(p9.BreedingCategory == "E/ALT", "24307-9 must remain breeder-category E/ALT.");
+Assert(p9.CompatibleDiplotypes.Contains("E1+E/R2") && p9.CompatibleDiplotypes.Contains("E2+R1"), "24307-9 phase ambiguity E1+E/R2 vs E2+R1 must be preserved.");
 
 Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId("24307-1-2-P-F.ab1") == "24307-1", "GENEWIZ P-F naming normalization failed.");
 Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId("24307-1-2-Ext-F.ab1") == "24307-1", "External-F naming normalization failed.");

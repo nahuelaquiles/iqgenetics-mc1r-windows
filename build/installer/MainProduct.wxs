@@ -1,65 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  WiX v4 installer for IQ Genetics MC1R.
-
-  The app files are harvested from the publish folder into a component group
-  named "PublishedFiles" by the .wixproj HarvestDirectory item.
--->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-
-  <!-- ENTRY POINT -->
   <Package
-    Name="IQ Genetics MC1R Sanger Automation"
+    Name="IQ Genetics MC1R Haplotype Analysis"
     Manufacturer="IQ Genetics / GECORP"
-    Version="0.1.0.0"
+    Version="1.0.0.0"
     UpgradeCode="224D0170-2C49-4659-9B9A-7DB949722806"
     Language="1033"
     Scope="perMachine">
-
-    <!-- Force per-machine / all-users behavior explicitly -->
-
-    <MajorUpgrade DowngradeErrorMessage="A newer version of IQ Genetics MC1R Sanger Automation is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of IQ Genetics MC1R Haplotype Analysis is already installed." />
     <MediaTemplate EmbedCab="yes" />
-
-    <!-- Main feature: installs harvested files + start menu shortcut -->
-    <Feature Id="MainFeature" Title="IQ Genetics MC1R Sanger Automation" Level="1">
+    <Feature Id="MainFeature" Title="IQ Genetics MC1R Haplotype Analysis" Level="1">
       <ComponentGroupRef Id="PublishedFiles" />
       <ComponentRef Id="StartMenuShortcut" />
     </Feature>
   </Package>
-
-  <!-- Installation directory (x64 installer uses Program Files) -->
   <Fragment>
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R Sanger Automation" />
+      <Directory Id="INSTALLFOLDER" Name="IQ Genetics MC1R Haplotype Analysis" />
     </StandardDirectory>
   </Fragment>
-
-  <!-- Start menu folder (legal in WiX v4) -->
   <Fragment>
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="StartMenuDir" Name="IQ Genetics MC1R Sanger Automation" />
+      <Directory Id="StartMenuDir" Name="IQ Genetics MC1R Haplotype Analysis" />
     </StandardDirectory>
   </Fragment>
-
-  <!-- Start menu shortcut component -->
   <Fragment>
     <Component Id="StartMenuShortcut" Directory="StartMenuDir" Guid="D5774AA1-F836-4BF6-9205-DFC4F77D6751">
-      <Shortcut Id="ApplicationStartMenuShortcut"
-                Name="IQ Genetics MC1R Sanger Automation"
-                Target="[INSTALLFOLDER]IQGenetics.MC1R.exe"
-                WorkingDirectory="INSTALLFOLDER" />
-
+      <Shortcut Id="ApplicationStartMenuShortcut" Name="IQ Genetics MC1R Haplotype Analysis" Target="[INSTALLFOLDER]IQGenetics.MC1R.exe" WorkingDirectory="INSTALLFOLDER" />
       <RemoveFolder Id="RemoveStartMenuDir" On="uninstall" />
-
-      <!-- Per-machine registry marker (valid path, no slashes) -->
-      <RegistryValue Root="HKLM"
-                     Key="Software\IQGenetics\MC1R"
-                     Name="Installed"
-                     Type="integer"
-                     Value="1"
-                     KeyPath="yes" />
+      <RegistryValue Root="HKLM" Key="Software\IQGenetics\MC1R" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
     </Component>
   </Fragment>
-
 </Wix>

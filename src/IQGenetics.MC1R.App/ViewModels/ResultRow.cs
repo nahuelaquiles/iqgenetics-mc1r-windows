@@ -1,26 +1,24 @@
 namespace IQGenetics.MC1R.App.ViewModels
 {
-    // Representa una fila de resultados en la interfaz
     public sealed class ResultRow
     {
         public string SampleName { get; set; } = "";
-        public string FilePath { get; set; } = "";
-        public string Orientation { get; set; } = "";
-        public int AlignmentScore { get; set; }
-        public string DirtyFlag { get; set; } = "";
-        public string DirtyReason { get; set; } = "";
-        // Genotipos para cada sitio de interés
+        public int TotalReads { get; set; }
+        public int UsableReads { get; set; }
+        public string QcStatus { get; set; } = "";
+        public string QcNotes { get; set; } = "";
         public string Genotype212 { get; set; } = "";
         public string Genotype274 { get; set; } = "";
-        public string Genotype355 { get; set; } = "";
         public string Genotype376 { get; set; } = "";
-        public string Genotype636 { get; set; } = "";
+        public string Genotype398 { get; set; } = "";
+        public string Genotype409 { get; set; } = "";
+        public string Genotype427 { get; set; } = "";
         public string Genotype637 { get; set; } = "";
         public string Genotype644 { get; set; } = "";
-        public string Genotype834 { get; set; } = "";
-        public string EStatus { get; set; } = "";
-        public string SuppressionStatus { get; set; } = "";
-        // Nuevo campo para el patrón de cromatograma según el QC
-        public string ChromatogramPattern { get; set; } = "";
+        public string CallStatus { get; set; } = "";
+        public string BreedingCategory { get; set; } = "";
+        public string CompatibleDiplotypes { get; set; } = "";
+        public string CompatiblePhenotypes { get; set; } = "";
+        public string Interpretation { get; set; } = "";
     }
 }

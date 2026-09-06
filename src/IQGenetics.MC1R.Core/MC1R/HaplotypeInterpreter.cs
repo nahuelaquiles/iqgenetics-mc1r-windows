@@ -80,13 +80,30 @@ public static class Mc1rHaplotypeInterpreter
         return stem.TrimEnd('-', '_', '.');
     }
 
+    /// <summary>
+    /// c.212 is intentionally accepted only from the upstream External-F Sanger read.
+    /// Internal-F/Internal-R place c.212 too close to an unreliable read edge in the
+    /// validated assay architecture and must not drive haplotype inference.
+    /// </summary>
+    public static bool IsExternalForwardReadName(string fileName)
+    {
+        string stem = Path.GetFileNameWithoutExtension(fileName).Trim();
+        return Regex.IsMatch(stem, @"(?:EXT|EXTERNAL)[-_.]?F$", RegexOptions.IgnoreCase);
+    }
+
     public static SampleConsensusResult Interpret(string sampleId, IReadOnlyList<Mc1rRead2026Result> reads)
     {
         if (reads.Count == 0) return EmptyNoCall(sampleId, "No reads supplied.");
         var usable = reads.Where(r => !r.IsDirty).ToList();
         if (usable.Count == 0) return EmptyNoCall(sampleId, "All reads failed global chromatogram QC.", reads.Count);
 
-        var c212 = BuildConsensus(Mc1r2026Caller.SiteC212, usable.Select(r => r.C212));
+        // c.212 is a primer-role-specific site: only a usable External-F read may contribute.
+        var externalF = usable.Where(r => IsExternalForwardReadName(r.SampleName)).ToList();
+        var c212 = externalF.Count == 0
+            ? new ConsensusSiteCall(Mc1r2026Caller.SiteC212, "NoCall", 0, false,
+                "c.212 requires a usable External-F read; Internal-F/Internal-R calls are intentionally ignored.")
+            : BuildConsensus(Mc1r2026Caller.SiteC212, externalF.Select(r => r.C212));
+
         var c274 = BuildConsensus(Mc1r2026Caller.SiteC274, usable.Select(r => r.C274));
         var c376 = BuildConsensus(Mc1r2026Caller.SiteC376, usable.Select(r => r.C376));
         var c398 = BuildConsensus(Mc1r2026Caller.SiteC398, usable.Select(r => r.C398));

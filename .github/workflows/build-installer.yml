@@ -3,7 +3,7 @@ name: Build Windows Installer
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "release-2026-haplotype" ]
+    branches: [ "main", "release-2026-haplotype", "validation-fix-c212" ]
     tags:
       - "v*"
 

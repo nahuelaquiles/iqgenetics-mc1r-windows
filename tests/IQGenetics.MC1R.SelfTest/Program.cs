@@ -25,14 +25,14 @@ static Mc1rHaplotype H(string id) => Mc1rHaplotypeInterpreter.CommonHaplotypes.S
 
 var e1 = H("E1"); var e2 = H("E2"); var r1 = H("R1"); var n1 = H("N1"); var n2 = H("N2");
 
-var ee = Mc1rHaplotypeInterpreter.Interpret("EE", new[] { MakeRead("EE-F.ab1", e1, e2) });
+var ee = Mc1rHaplotypeInterpreter.Interpret("EE", new[] { MakeRead("EE-External-F.ab1", e1, e2) });
 Assert(ee.BreedingCategory == "E/E-compatible", "E1+E2 must be E/E-compatible.");
 Assert(ee.CompatibleDiplotypes.Contains("E1+E2"), "E1+E2 diplotype should be reported.");
 
-var ealt = Mc1rHaplotypeInterpreter.Interpret("EALT", new[] { MakeRead("EALT-F.ab1", e1, r1) });
+var ealt = Mc1rHaplotypeInterpreter.Interpret("EALT", new[] { MakeRead("EALT-Ext-F.ab1", e1, r1) });
 Assert(ealt.BreedingCategory == "E/ALT", "E1+R1 must be E/ALT.");
 
-var alt = Mc1rHaplotypeInterpreter.Interpret("ALT", new[] { MakeRead("ALT-F.ab1", n1, n2) });
+var alt = Mc1rHaplotypeInterpreter.Interpret("ALT", new[] { MakeRead("ALT-External_F.ab1", n1, n2) });
 Assert(alt.BreedingCategory == "ALT/ALT", "N1+N2 must be ALT/ALT.");
 
 var majority = Mc1rHaplotypeInterpreter.Interpret("MAJ", new[]
@@ -43,6 +43,15 @@ var majority = Mc1rHaplotypeInterpreter.Interpret("MAJ", new[]
 });
 Assert(majority.C644.Genotype == "A/A", "2:1 consensus must override one discordant c.644 call.");
 Assert(majority.QcStatus == "WARN", "Majority consensus with discordance must retain WARN QC.");
+
+// c.212 must never be inferred from Internal-F/Internal-R. This prevents edge artifacts
+// from creating biologically impossible c.212 genotypes and forcing a wrong diplotype.
+var internalOnly = Mc1rHaplotypeInterpreter.Interpret("INT", new[] { MakeRead("INT-Internal-R.ab1", e1, r1) });
+Assert(internalOnly.C212.Genotype == "NoCall", "Internal-R c.212 must be ignored.");
+Assert(internalOnly.C212.Note.Contains("External-F"), "Missing External-F should be explicit in c.212 QC note.");
+Assert(Mc1rHaplotypeInterpreter.IsExternalForwardReadName("24307-1-2-Ext-F.ab1"), "Ext-F role detection failed.");
+Assert(Mc1rHaplotypeInterpreter.IsExternalForwardReadName("24307-1-2-External_F.ab1"), "External_F role detection failed.");
+Assert(!Mc1rHaplotypeInterpreter.IsExternalForwardReadName("24307-1-2-P-R.ab1"), "Internal/P-R must not be treated as External-F.");
 
 Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId("24307-1-2-P-F.ab1") == "24307-1", "GENEWIZ P-F naming normalization failed.");
 Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId("24307-1-2-Ext-F.ab1") == "24307-1", "External-F naming normalization failed.");

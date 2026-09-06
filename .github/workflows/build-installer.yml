@@ -59,18 +59,17 @@ jobs:
             /p:PublishDir=$publishPath `
             /p:InstallerPlatform=x64
 
-      - name: Collect MSI
+      - name: Package MSI
         run: |
-          New-Item -ItemType Directory -Force -Path .\artifacts\installer | Out-Null
-          $msis = Get-ChildItem -Recurse -Path . -Filter *.msi | Where-Object { $_.FullName -notlike '*artifacts\installer*' }
-          if ($msis.Count -eq 0) { throw "No MSI produced anywhere in the workspace." }
-          $m = $msis | Select-Object -First 1
-          Copy-Item $m.FullName .\artifacts\installer\IQGenetics_MC1R_Haplotype_v1.0.msi -Force
-          Get-ChildItem .\artifacts\installer -Filter *.msi | Select-Object FullName, Length
+          $source = '.\artifacts\installer\Release\IQGenetics.MC1R.Installer.msi'
+          if (!(Test-Path $source)) { throw "Expected MSI not found: $source" }
+          New-Item -ItemType Directory -Force -Path .\artifacts\package | Out-Null
+          Copy-Item $source .\artifacts\package\IQGenetics_MC1R_Haplotype_v1.0.msi -Force
+          Get-Item .\artifacts\package\IQGenetics_MC1R_Haplotype_v1.0.msi | Select-Object FullName, Length
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: IQGenetics_MC1R_Haplotype_v1.0
-          path: artifacts/installer/IQGenetics_MC1R_Haplotype_v1.0.msi
+          path: artifacts/package/IQGenetics_MC1R_Haplotype_v1.0.msi
           if-no-files-found: error

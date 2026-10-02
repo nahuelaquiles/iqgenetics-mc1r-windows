@@ -68,4 +68,41 @@ Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId("24307-1-2-P-F.ab1") == "24307
 Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId("24307-1-2-Ext-F.ab1") == "24307-1", "External-F naming normalization failed.");
 Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId("17663-143JB-B-R.ab1") == "17663-143JB-B", "Simple reverse naming normalization failed.");
 
+// September batch: three short role aliases must group per PCR preparation,
+// without collapsing numeric IDs or merging independently labelled PCRs.
+var preparationIds = new[] { "24307-2", "24307-2V", "24307-3", "24307-8N", "24307-9", "24307-9N", "24307-10", "24307-11" };
+var shortReads = preparationIds.SelectMany(id => new[] { "EF", "IF", "IR" }
+    .Select(role => MakeRead($"{id}-{role}.ab1", e1, r1))).ToArray();
+var shortGroups = shortReads.GroupBy(r => Mc1rHaplotypeInterpreter.NormalizeSampleId(r.SampleName)).ToArray();
+Assert(shortGroups.Length == preparationIds.Length, "Short aliases must produce eight distinct PCR preparations.");
+foreach (var group in shortGroups)
+{
+    Assert(preparationIds.Contains(group.Key) && group.Count() == 3, "Preparation ID or read count changed during alias grouping.");
+    var result = Mc1rHaplotypeInterpreter.Interpret(group.Key, group.ToArray());
+    Assert(result.C212.Genotype == "C/T" && result.C212.SupportingReads == 1, "Only EF may support c.212 in a short-alias triplet.");
+    Assert(result.CallStatus == "RESOLVED" && result.CompatibleDiplotypes == "E1+R1", "Short-alias consensus must preserve haplotype interpretation.");
+}
+foreach (var separator in new[] { "-", "_", "." })
+{
+    foreach (var role in new[] { "ef", "if", "ir" })
+    {
+        var name = $"flock-41-7{separator}{role}.ab1";
+        Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId(name) == "flock-41-7", "Alias normalization must preserve arbitrary multi-part numeric IDs.");
+        Assert(Mc1rHaplotypeInterpreter.IsExternalForwardReadName(name) == (role == "ef"), "Only a delimited EF alias is External-F.");
+    }
+}
+Assert(!Mc1rHaplotypeInterpreter.IsExternalForwardReadName("sample-REF.ab1"), "An ID ending in REF is not an EF role suffix.");
+Assert(Mc1rHaplotypeInterpreter.NormalizeSampleId("sample-REF.ab1") == "sample-REF", "Unrecognized suffixes must remain unchanged.");
+
+var aliasWithFailedExternal = Mc1rHaplotypeInterpreter.Interpret("QC", new[]
+{
+    MakeRead("QC-EF.ab1", e1, r1) with { IsDirty = true, DirtyReason = "Rejected by global QC" },
+    MakeRead("QC-IF.ab1", e1, r1),
+    MakeRead("QC-IR.ab1", e1, r1)
+});
+Assert(aliasWithFailedExternal.C212.Genotype == "NoCall" && aliasWithFailedExternal.C212.SupportingReads == 0,
+    "Recognizing EF must never bypass global QC or infer c.212 from IF/IR.");
+Assert(aliasWithFailedExternal.CallStatus == "INCOMPLETE" && aliasWithFailedExternal.UsableReads == 2,
+    "Failed EF must leave the grouped sample incomplete.");
+
 Console.WriteLine("MC1R 2026 haplotype self-test: PASS");

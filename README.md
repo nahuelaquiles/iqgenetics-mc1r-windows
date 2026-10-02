@@ -25,6 +25,10 @@ The software loads all reads for a batch, groups reads belonging to the same bir
 
 Load all `.ab1` reads for all birds together. Common suffixes such as `-F`, `-R`, `-2-P-F`, `-2-P-R`, and `-2-Ext-F` are normalized so reads from one bird are combined before interpretation. A validated MC1R reference is bundled in the installer and selected automatically.
 
+The pending short-alias fix also recognizes `-EF`, `-IF`, and `-IR` (case-insensitive; `_` and `.` delimiters are accepted). `EF` means External F; only a globally usable External F may contribute to c.212. For these short aliases, the complete preceding preparation ID is preserved: `24307-2-EF.ab1`, `24307-2-IF.ab1`, and `24307-2-IR.ab1` group as `24307-2`, while `24307-2V` remains a separate PCR preparation. Do not merge independent PCR preparations automatically.
+
+This change is not included in the released v1.0.1 installer. For that installer, make byte-identical copies named `<preparation>-PCR-Ext-F.ab1`, `<preparation>-PCR-Int-F.ab1`, and `<preparation>-PCR-Int-R.ab1`; load only the copies. The literal `-PCR-` separator protects numeric sample identifiers from the retained legacy run-index rule. Do not simply substitute `-EF` with `-Ext-F`: the legacy parser strips the numeric token immediately before an External-F suffix. This compatibility behavior is unchanged by the short-alias fix. Verify the preparation IDs and three-read counts before interpreting any output.
+
 Persistent secondary peaks trigger global QC exclusion. A low Phred score at a truly heterozygous site is not accepted merely by lowering a threshold: the site is rescued only when the whole read passed QC and a strong localized dual peak is present. Discordant reads are resolved only by a 2:1-or-stronger sample-level majority; otherwise that site becomes `NoCall`.
 
 ## Output

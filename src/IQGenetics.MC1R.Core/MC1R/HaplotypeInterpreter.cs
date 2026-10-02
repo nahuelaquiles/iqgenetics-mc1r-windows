@@ -76,7 +76,9 @@ public static class Mc1rHaplotypeInterpreter
     {
         string stem = Path.GetFileNameWithoutExtension(fileName).Trim();
         stem = Regex.Replace(stem, @"[-_.]\d+[-_.](?:P[-_.]?[FR]|EXT(?:ERNAL)?[-_.]?F)$", "", RegexOptions.IgnoreCase);
-        stem = Regex.Replace(stem, @"[-_.](?:EXT(?:ERNAL)?[-_.]?F|INT(?:ERNAL)?[-_.]?[FR]|INTERNAL[-_.]?[FR]|[FR])$", "", RegexOptions.IgnoreCase);
+        // Short primer-role aliases do not include a legacy run index. Preserve
+        // the complete preparation ID, including numeric and replicate suffixes.
+        stem = Regex.Replace(stem, @"[-_.](?:EF|I[FR]|EXT(?:ERNAL)?[-_.]?F|INT(?:ERNAL)?[-_.]?[FR]|INTERNAL[-_.]?[FR]|[FR])$", "", RegexOptions.IgnoreCase);
         return stem.TrimEnd('-', '_', '.');
     }
 
@@ -88,7 +90,7 @@ public static class Mc1rHaplotypeInterpreter
     public static bool IsExternalForwardReadName(string fileName)
     {
         string stem = Path.GetFileNameWithoutExtension(fileName).Trim();
-        return Regex.IsMatch(stem, @"(?:EXT|EXTERNAL)[-_.]?F$", RegexOptions.IgnoreCase);
+        return Regex.IsMatch(stem, @"(?:EXT|EXTERNAL)[-_.]?F$|(?:^|[-_.])EF$", RegexOptions.IgnoreCase);
     }
 
     public static SampleConsensusResult Interpret(string sampleId, IReadOnlyList<Mc1rRead2026Result> reads)
